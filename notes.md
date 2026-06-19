@@ -160,7 +160,27 @@ For something like LifeCast where you're clicking slides rapidly during a live s
 Alright, you've got the full picture now.
 
 
+Here's why the domino effect won't happen with how we've built this:
 
+The structure protects you. Every piece is isolated:
+
+Controller shapes the data before it leaves PHP — React only sees what we explicitly send
+TypeScript interfaces act as a contract — if the shape changes on either side, the compiler screams before the browser ever sees it
+Each component only knows about its own props — LibraryPanel doesn't know PropertiesPanel exists
+For CRUD specifically, the risk you're feeling is real but manageable because:
+
+Adding a song = a new route + controller method + form in React — it doesn't touch the reading side at all
+The reading side (what we built) stays exactly as is
+The only connection is the DB — insert a row, the next page load shows it
+What I have a complete picture of:
+
+The mockup's full UI — what each section does and how they interact
+The data flow from DB → PHP → JSON → React
+The polymorphic schedule (song/bible/media/deck can all be schedule items)
+The live window goal — where all of this is heading
+The only CRUD that has real complexity is Songs (because slides are a nested resource — one song has many slides, you manage them together). Bible, Media, Slides are simpler single-record forms.
+
+We'll tackle Songs CRUD carefully — modal with a two-step flow: song details first, then slides editor. I already see how it should work from the mockup.
 
 
 

@@ -1,37 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import type { SelectedSong } from '@/pages/Console/Index';
 
-const SLIDES = [
-    { label: 'Verse 1',      text: 'Amazing Grace,\nhow sweet\nthe sound' },
-    { label: 'Verse 1 cont.', text: 'That saved a\nwretch like me' },
-    { label: 'Verse 2',      text: 'I once was lost,\nbut now am found' },
-    { label: 'Verse 2 cont.', text: 'Was blind,\nbut now I see' },
-    { label: 'Verse 3',      text: '\'Twas grace that\ntaught my heart to fear' },
-    { label: 'Verse 3 cont.', text: 'And grace my\nfears relieved' },
-];
+interface SlideCanvasProps {
+    label: string | null;
+    text: string;
+    blank?: boolean;
+    songTitle: string;
+    theme: { css_bg: string; text_color: string } | null;
+}
 
-function SlideCanvas({ label, text, blank = false }: { label: string; text: string; blank?: boolean }) {
+function SlideCanvas({ label, text, blank = false, songTitle, theme }: SlideCanvasProps) {
+    const screenStyle = theme ? { background: theme.css_bg } : {};
+    const textStyle   = theme ? { color: theme.text_color } : {};
+
     return (
-        <div className={`lc-preview-screen${blank ? ' is-blank' : ''}`}>
+        <div className={`lc-preview-screen${blank ? ' is-blank' : ''}`} style={screenStyle}>
             <div className="lc-screen-ambient" />
             <div className="lc-screen-slide">
-                <span className="lc-verse-label">{label}</span>
+                {label && <span className="lc-verse-label">{label}</span>}
                 <div
                     className="lc-lyric-text"
+                    style={textStyle}
                     dangerouslySetInnerHTML={{ __html: text.replace(/\n/g, '<br>') }}
                 />
-                <span className="lc-song-title">Amazing Grace</span>
+                <span className="lc-song-title">{songTitle}</span>
             </div>
         </div>
     );
 }
 
-export default function PreviewArea() {
+export default function PreviewArea({ selectedSong }: { selectedSong: SelectedSong | null }) {
+    const slides = selectedSong?.slides ?? [];
+
     const [activeThumb, setActiveThumb] = useState(0);
-    const [previewIdx, setPreviewIdx]   = useState(1);
+    const [previewIdx, setPreviewIdx]   = useState(0);
     const [liveIdx, setLiveIdx]         = useState(0);
     const [liveClick, setLiveClick]     = useState(false);
     const [isBlank, setIsBlank]         = useState(false);
-    const [isOnAir, setIsOnAir]         = useState(true);
+    const [isOnAir, setIsOnAir]         = useState(false);
+
+    // Reset preview state whenever the selected song changes
+    useEffect(() => {
+        setActiveThumb(0);
+        setPreviewIdx(0);
+        setLiveIdx(0);
+        setIsBlank(false);
+    }, [selectedSong?.id]);
 
     const handleThumbClick = (idx: number) => {
         setActiveThumb(idx);
@@ -57,24 +71,39 @@ export default function PreviewArea() {
     };
 
     const handleNext = () => {
-        const next = Math.min(SLIDES.length - 1, previewIdx + 1);
+        const next = Math.min(slides.length - 1, previewIdx + 1);
         setPreviewIdx(next);
         setActiveThumb(next);
     };
+
+    const previewSlide = slides[previewIdx];
+    const liveSlide    = slides[liveIdx];
+    const songTitle    = selectedSong?.title ?? '';
+    const theme        = selectedSong?.theme ?? null;
+
+    if (slides.length === 0) {
+        return (
+            <div className="lc-preview-area" style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ color: 'var(--lc-text-muted)', fontSize: '.85rem', fontFamily: 'Poppins, sans-serif' }}>
+                    Select a song from the library to preview slides.
+                </span>
+            </div>
+        );
+    }
 
     return (
         <div className="lc-preview-area">
 
             {/* ── Slide thumbnails ── */}
             <div className="lc-slide-list">
-                {SLIDES.map((slide, idx) => (
-                    <div key={idx}>
+                {slides.map((slide, idx) => (
+                    <div key={slide.id}>
                         <div
                             className={`lc-slide-thumb${activeThumb === idx ? ' active' : ''}`}
                             onClick={() => handleThumbClick(idx)}
                         >
-                            <span>{slide.text.split('\n').map((line, i) => (
-                                <span key={i}>{line}{i < slide.text.split('\n').length - 1 && <br />}</span>
+                            <span>{slide.content.split('\n').map((line, i, arr) => (
+                                <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
                             ))}</span>
                         </div>
                         <div className="lc-slide-label">{slide.label}</div>
@@ -93,10 +122,14 @@ export default function PreviewArea() {
                             <span className="lc-label-text">Preview</span>
                             <span className="lc-label-badge">Staged</span>
                         </div>
-                        <SlideCanvas
-                            label={SLIDES[previewIdx].label}
-                            text={SLIDES[previewIdx].text}
-                        />
+                        {previewSlide && (
+                            <SlideCanvas
+                                label={previewSlide.label}
+                                text={previewSlide.content}
+                                songTitle={songTitle}
+                                theme={theme}
+                            />
+                        )}
                     </div>
 
                     {/* Live screen */}
@@ -108,11 +141,15 @@ export default function PreviewArea() {
                                 {isOnAir ? 'ON AIR' : 'OFFLINE'}
                             </span>
                         </div>
-                        <SlideCanvas
-                            label={SLIDES[liveIdx].label}
-                            text={SLIDES[liveIdx].text}
-                            blank={isBlank}
-                        />
+                        {liveSlide && (
+                            <SlideCanvas
+                                label={liveSlide.label}
+                                text={liveSlide.content}
+                                blank={isBlank}
+                                songTitle={songTitle}
+                                theme={theme}
+                            />
+                        )}
                     </div>
 
                 </div>
@@ -134,13 +171,10 @@ export default function PreviewArea() {
                     </div>
 
                     <div className="lc-ctrl-center">
-                        <button className="lc-ctrl-btn" onClick={handlePrev}>◀ Prev</button>
-                        <button className="lc-ctrl-btn" onClick={handleNext}>Next ▶</button>
+                        <button className="lc-ctrl-btn" onClick={handlePrev} disabled={previewIdx === 0}>◀ Prev</button>
+                        <button className="lc-ctrl-btn" onClick={handleNext} disabled={previewIdx === slides.length - 1}>Next ▶</button>
                         <div className="lc-ctrl-divider" />
-                        <button
-                            className="lc-ctrl-btn btn-blank"
-                            onClick={() => setIsBlank(v => !v)}
-                        >
+                        <button className="lc-ctrl-btn btn-blank" onClick={() => setIsBlank(v => !v)}>
                             ■ {isBlank ? 'Unblank' : 'Blank Live'}
                         </button>
                         <button className="lc-ctrl-btn btn-live" onClick={handleSendLive}>

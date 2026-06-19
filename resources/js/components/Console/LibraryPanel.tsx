@@ -3,6 +3,7 @@ import {
     Music, BookOpen, Film, Image, Headphones, FileText, Presentation,
     FolderPlus, Upload, Plus, ChevronDown, SkipBack, SkipForward, Play,
 } from 'lucide-react';
+import { router } from '@inertiajs/react';
 import type { SongFolder, SavedVerse, MediaFile, SlideDeck } from '@/pages/Console/Index';
 
 type Tab = 'songs' | 'bible' | 'media' | 'slides';
@@ -31,7 +32,11 @@ function formatMediaMeta(item: MediaFile): string {
     return ext;
 }
 
-export default function LibraryPanel({ songFolders, savedVerses, mediaFiles, slideDecks }: { songFolders: SongFolder[]; savedVerses: SavedVerse[]; mediaFiles: MediaFile[]; slideDecks: SlideDeck[] }) {
+export default function LibraryPanel({ songFolders, savedVerses, mediaFiles, slideDecks, activeSongId }: { songFolders: SongFolder[]; savedVerses: SavedVerse[]; mediaFiles: MediaFile[]; slideDecks: SlideDeck[]; activeSongId: number | null }) {
+
+    const selectSong = (id: number) => {
+        router.get('/console', { song: id }, { preserveState: true, preserveScroll: true, only: ['selectedSong'] });
+    };
     const [activeTab, setActiveTab]       = useState<Tab>('songs');
     const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
     const [smpExpanded, setSmpExpanded]   = useState(false);
@@ -90,7 +95,11 @@ export default function LibraryPanel({ songFolders, savedVerses, mediaFiles, sli
                             </div>
                             <div className="lc-folder-contents">
                                 {folder.songs.map(song => (
-                                    <div key={song.id} className="lc-library-item">
+                                    <div
+                                        key={song.id}
+                                        className={`lc-library-item${activeSongId === song.id ? ' active' : ''}`}
+                                        onClick={() => selectSong(song.id)}
+                                    >
                                         <div className="lc-item-icon lc-icon-song"><Music /></div>
                                         <div className="lc-item-info">
                                             <div className="lc-item-title">{song.title}</div>

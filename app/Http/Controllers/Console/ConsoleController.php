@@ -7,6 +7,7 @@ use App\Models\MediaFile;
 use App\Models\SavedVerse;
 use App\Models\Schedule;
 use App\Models\SlideDeck;
+use App\Models\Song;
 use App\Models\SongFolder;
 use App\Models\Theme;
 use Inertia\Inertia;
@@ -103,13 +104,39 @@ class ConsoleController extends Controller
                 'is_system'  => $t->is_system,
             ]);
 
+        // Resolve which song to show in PreviewArea
+        $songId    = request()->integer('song', 0);
+        $activeSong = $songId
+            ? Song::with(['slides', 'theme'])->find($songId)
+            : Song::with(['slides', 'theme'])
+                ->whereHas('scheduleItems', fn ($q) => $q->where('schedule_id', $scheduleModel?->id))
+                ->orderByRaw('(SELECT sort_order FROM schedule_items WHERE schedulable_id = songs.id AND schedulable_type = ? LIMIT 1)', [Song::class])
+                ->first()
+                ?? Song::with(['slides', 'theme'])->first();
+
+        $selectedSong = $activeSong ? [
+            'id'     => $activeSong->id,
+            'title'  => $activeSong->title,
+            'author' => $activeSong->author,
+            'slides' => $activeSong->slides->map(fn ($s) => [
+                'id'      => $s->id,
+                'label'   => $s->label,
+                'content' => $s->content,
+            ]),
+            'theme' => $activeSong->theme ? [
+                'css_bg'     => $activeSong->theme->css_background,
+                'text_color' => $activeSong->theme->text_color,
+            ] : null,
+        ] : null;
+
         return Inertia::render('Console/Index', [
             'songFolders' => $songFolders,
             'savedVerses' => $savedVerses,
             'mediaFiles'  => $mediaFiles,
             'slideDecks'  => $slideDecks,
-            'schedule'    => $schedule,
-            'themes'      => $themes,
+            'schedule'     => $schedule,
+            'themes'       => $themes,
+            'selectedSong' => $selectedSong,
         ]);
     }
 }

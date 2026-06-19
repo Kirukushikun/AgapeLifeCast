@@ -62,6 +62,20 @@ export interface ThemeData {
     is_system: boolean;
 }
 
+export interface SlideData {
+    id: number;
+    label: string | null;
+    content: string;
+}
+
+export interface SelectedSong {
+    id: number;
+    title: string;
+    author: string | null;
+    slides: SlideData[];
+    theme: { css_bg: string; text_color: string } | null;
+}
+
 interface Props {
     songFolders: SongFolder[];
     savedVerses: SavedVerse[];
@@ -69,15 +83,22 @@ interface Props {
     slideDecks: SlideDeck[];
     schedule: ScheduleData | null;
     themes: ThemeData[];
+    selectedSong: SelectedSong | null;
 }
 
-export default function Index({ songFolders, savedVerses, mediaFiles, slideDecks, schedule, themes }: Props) {
+export default function Index({ songFolders, savedVerses, mediaFiles, slideDecks, schedule, themes, selectedSong }: Props) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
             <Topbar />
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                <LibraryPanel songFolders={songFolders} savedVerses={savedVerses} mediaFiles={mediaFiles} slideDecks={slideDecks} />
-                <PreviewArea />
+                <LibraryPanel
+                    songFolders={songFolders}
+                    savedVerses={savedVerses}
+                    mediaFiles={mediaFiles}
+                    slideDecks={slideDecks}
+                    activeSongId={selectedSong?.id ?? null}
+                />
+                <PreviewArea selectedSong={selectedSong} />
                 <PropertiesPanel schedule={schedule} themes={themes} />
             </div>
         </div>
