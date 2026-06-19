@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     Music, BookOpen, Film, Image, Headphones, FileText, Presentation,
-    FolderPlus, Upload, Plus, ChevronDown, SkipBack, SkipForward, Play,
+    FolderPlus, Upload, Plus, ChevronDown, SkipBack, SkipForward, Play, Pause,
     Pencil, Trash2,
 } from 'lucide-react';
 import { router, useForm } from '@inertiajs/react';
@@ -13,8 +13,12 @@ import BibleModal from '@/components/Console/Bible/BibleModal';
 import VerseFolderDeleteModal from '@/components/Console/Bible/VerseFolderDeleteModal';
 import VerseDeleteModal from '@/components/Console/Bible/VerseDeleteModal';
 import VerseContextMenu from '@/components/Console/Bible/VerseContextMenu';
+import MediaFolderDeleteModal from '@/components/Console/Media/MediaFolderDeleteModal';
+import MediaDeleteModal from '@/components/Console/Media/MediaDeleteModal';
+import MediaContextMenu from '@/components/Console/Media/MediaContextMenu';
+import MediaUploadModal from '@/components/Console/Media/MediaUploadModal';
 import type { EditSongData } from '@/components/Console/Songs/SongModal';
-import type { SongFolder, VerseFolder, SavedVerse, MediaFile, SlideDeck, SongItem, SelectedSong } from '@/pages/Console/Index';
+import type { SongFolder, VerseFolder, SavedVerse, MediaFile, MediaFolder, SlideDeck, SongItem, SelectedSong } from '@/pages/Console/Index';
 
 type Tab = 'songs' | 'bible' | 'media' | 'slides';
 
@@ -39,7 +43,19 @@ function formatMediaMeta(item: MediaFile): string {
     return ext;
 }
 
-export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFiles, slideDecks, activeSongId, activeVerseId, selectedSong, onVerseSelect, onSongSelect }: { songFolders: SongFolder[]; uncategorizedSongs: SongItem[]; verseFolders: VerseFolder[]; savedVerses: SavedVerse[]; mediaFiles: MediaFile[]; slideDecks: SlideDeck[]; activeSongId: number | null; activeVerseId: number | null; selectedSong: SelectedSong | null; onVerseSelect: (verse: SavedVerse) => void; onSongSelect: () => void }) {
+function MediaIcon({ type }: { type: MediaFile['type'] }) {
+    if (type === 'video') return <Film />;
+    if (type === 'audio') return <Headphones />;
+    return <Image />;
+}
+
+function mediaIconClass(type: MediaFile['type']) {
+    if (type === 'video') return 'lc-icon-video';
+    if (type === 'audio') return 'lc-icon-audio';
+    return 'lc-icon-image';
+}
+
+export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDecks, activeSongId, activeVerseId, selectedSong, onVerseSelect, onSongSelect }: { songFolders: SongFolder[]; uncategorizedSongs: SongItem[]; verseFolders: VerseFolder[]; savedVerses: SavedVerse[]; mediaFolders: MediaFolder[]; uncategorizedMedia: MediaFile[]; slideDecks: SlideDeck[]; activeSongId: number | null; activeVerseId: number | null; selectedSong: SelectedSong | null; onVerseSelect: (verse: SavedVerse) => void; onSongSelect: () => void }) {
 
     const selectSong = (id: number) => {
         onSongSelect();
@@ -66,8 +82,26 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
     const [collapsedVerseFolders, setCollapsedVerseFolders] = useState<Set<number>>(new Set());
     const verseFolderForm = useForm({ name: '' });
 
+    // ── Media state ──
+    const [uploadModal, setUploadModal]                       = useState(false);
+    const [mediaFolderModal, setMediaFolderModal]             = useState<{ mode: 'create' } | { mode: 'rename'; id: number } | null>(null);
+    const [mediaFolderToDelete, setMediaFolderToDelete]       = useState<MediaFolder | null>(null);
+    const [mediaToDelete, setMediaToDelete]                   = useState<MediaFile | null>(null);
+    const [mediaCtx, setMediaCtx]                             = useState<{ x: number; y: number; file: MediaFile; folderId: number | null } | null>(null);
+    const [collapsedMediaFolders, setCollapsedMediaFolders]   = useState<Set<number>>(new Set());
+    const [selectedMedia, setSelectedMedia]                   = useState<MediaFile | null>(null);
+    const mediaFolderForm = useForm({ name: '' });
+
+    // ── Media player state ──
+    const videoRef    = useRef<HTMLVideoElement>(null);
+    const audioRef    = useRef<HTMLAudioElement>(null);
+    const [isPlaying, setIsPlaying]     = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration]       = useState(0);
+    const [mediaOnLive, setMediaOnLive] = useState(false);
+
     // ── Layout state ──
-    const [activeTab, setActiveTab]   = useState<Tab>('songs');
+    const [activeTab, setActiveTab]     = useState<Tab>('songs');
     const [smpExpanded, setSmpExpanded] = useState(false);
 
     // ── Song handlers ──
@@ -151,6 +185,85 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
     const handleVerseRightClick = (e: React.MouseEvent, verse: SavedVerse, folderId: number | null) => {
         e.preventDefault();
         setVerseCtx({ x: e.clientX, y: e.clientY, verse, folderId });
+    };
+
+    // ── Media handlers ──
+    useEffect(() => {
+        videoRef.current?.pause();
+        audioRef.current?.pause();
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setDuration(0);
+    }, [selectedMedia?.id]);
+
+    const handleMediaSelect = (file: MediaFile) => {
+        setSelectedMedia(file);
+        setSmpExpanded(true);
+        setMediaOnLive(false);
+    };
+
+    const getMediaEl = () =>
+        selectedMedia?.type === 'video' ? videoRef.current : audioRef.current;
+
+    const handlePlayPause = () => {
+        const el = getMediaEl();
+        if (!el) return;
+        if (isPlaying) {
+            el.pause();
+            setIsPlaying(false);
+        } else {
+            el.play().catch(() => {});
+            setIsPlaying(true);
+        }
+    };
+
+    const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const t = parseFloat(e.target.value);
+        const el = getMediaEl();
+        if (el) el.currentTime = t;
+        setCurrentTime(t);
+    };
+
+    const handleTimeUpdate = () => {
+        const el = getMediaEl();
+        if (el) setCurrentTime(el.currentTime);
+    };
+
+    const handleLoadedMetadata = () => {
+        const el = getMediaEl();
+        if (el && isFinite(el.duration)) setDuration(el.duration);
+    };
+
+    const handleEnded = () => setIsPlaying(false);
+
+    const formatTime = (s: number) => {
+        const m = Math.floor(s / 60);
+        return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+    };
+
+    const toggleMediaFolder = (id: number) =>
+        setCollapsedMediaFolders(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+
+    const openMediaFolderModal = () => { mediaFolderForm.reset(); setMediaFolderModal({ mode: 'create' }); };
+    const openRenameMediaFolder = (folder: MediaFolder) => { mediaFolderForm.setData('name', folder.name); setMediaFolderModal({ mode: 'rename', id: folder.id }); };
+
+    const submitMediaFolderModal = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!mediaFolderModal) return;
+        if (mediaFolderModal.mode === 'create') {
+            mediaFolderForm.post('/console/media-folders', { onSuccess: () => setMediaFolderModal(null) });
+        } else {
+            mediaFolderForm.patch(`/console/media-folders/${mediaFolderModal.id}`, { onSuccess: () => setMediaFolderModal(null) });
+        }
+    };
+
+    const handleMediaRightClick = (e: React.MouseEvent, file: MediaFile, folderId: number | null) => {
+        e.preventDefault();
+        setMediaCtx({ x: e.clientX, y: e.clientY, file, folderId });
     };
 
     return (
@@ -314,27 +427,69 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
             {activeTab === 'media' && (
                 <div className="lc-library-list">
                     <div className="lc-library-list-header">
-                        <button className="lc-list-action-btn">
+                        <button className="lc-list-action-btn" onClick={openMediaFolderModal}>
                             <FolderPlus size={11} /> New Folder
                         </button>
-                        <button className="lc-list-action-btn">
+                        <button className="lc-list-action-btn" onClick={() => setUploadModal(true)}>
                             <Upload size={11} /> Import
                         </button>
                     </div>
-                    {mediaFiles.map(item => (
-                        <div key={item.id} className="lc-library-item">
-                            <div className={`lc-item-icon ${
-                                item.type === 'video' ? 'lc-icon-video' :
-                                item.type === 'audio' ? 'lc-icon-audio' :
-                                'lc-icon-image'
-                            }`}>
-                                {item.type === 'video' ? <Film /> :
-                                 item.type === 'audio' ? <Headphones /> :
-                                 <Image />}
+
+                    {mediaFolders.map(folder => (
+                        <div
+                            key={folder.id}
+                            className={`lc-library-folder${collapsedMediaFolders.has(folder.id) ? ' collapsed' : ''}`}
+                        >
+                            <div className="lc-folder-row" onClick={() => toggleMediaFolder(folder.id)}>
+                                <span className="lc-folder-chevron"><ChevronDown /></span>
+                                <span>📁</span>
+                                <span className="lc-folder-name">{folder.name}</span>
+                                <div className="lc-folder-actions" onClick={e => e.stopPropagation()}>
+                                    <button className="lc-folder-btn" title="Rename folder" onClick={() => openRenameMediaFolder(folder)}>
+                                        <Pencil size={11} />
+                                    </button>
+                                    <button className="lc-folder-btn danger" title="Delete folder" onClick={() => setMediaFolderToDelete(folder)}>
+                                        <Trash2 size={11} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="lc-folder-contents">
+                                {folder.files.map(file => (
+                                    <div
+                                        key={file.id}
+                                        className={`lc-library-item${selectedMedia?.id === file.id ? ' active' : ''}`}
+                                        onClick={() => handleMediaSelect(file)}
+                                        onContextMenu={e => handleMediaRightClick(e, file, folder.id)}
+                                    >
+                                        <div className={`lc-item-icon ${mediaIconClass(file.type)}`}>
+                                            <MediaIcon type={file.type} />
+                                        </div>
+                                        <div className="lc-item-info">
+                                            <div className="lc-item-title">{file.title}</div>
+                                            <div className="lc-item-meta">{formatMediaMeta(file)}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+
+                    {uncategorizedMedia.length === 0 && mediaFolders.length === 0 && (
+                        <div className="lc-library-empty">No media files yet.</div>
+                    )}
+                    {uncategorizedMedia.map(file => (
+                        <div
+                            key={file.id}
+                            className={`lc-library-item lc-item-root${selectedMedia?.id === file.id ? ' active' : ''}`}
+                            onClick={() => handleMediaSelect(file)}
+                            onContextMenu={e => handleMediaRightClick(e, file, null)}
+                        >
+                            <div className={`lc-item-icon ${mediaIconClass(file.type)}`}>
+                                <MediaIcon type={file.type} />
                             </div>
                             <div className="lc-item-info">
-                                <div className="lc-item-title">{item.title}</div>
-                                <div className="lc-item-meta">{formatMediaMeta(item)}</div>
+                                <div className="lc-item-title">{file.title}</div>
+                                <div className="lc-item-meta">{formatMediaMeta(file)}</div>
                             </div>
                         </div>
                     ))}
@@ -373,19 +528,102 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
                     <span className="lc-smp-chevron"><ChevronDown /></span>
                 </div>
                 <div className="lc-smp-body">
+
+                    {/* Screen */}
                     <div className="lc-smp-screen">
-                        <div className="lc-smp-placeholder">
-                            <Film />
-                            <span>No media loaded</span>
+                        {!selectedMedia && (
+                            <div className="lc-smp-placeholder">
+                                <Film />
+                                <span>No media loaded</span>
+                            </div>
+                        )}
+                        {selectedMedia?.type === 'image' && (
+                            <img src={selectedMedia.url} alt={selectedMedia.title} className="lc-smp-image" />
+                        )}
+                        {selectedMedia?.type === 'video' && (
+                            <video
+                                ref={videoRef}
+                                src={selectedMedia.url}
+                                className="lc-smp-video"
+                                onTimeUpdate={handleTimeUpdate}
+                                onLoadedMetadata={handleLoadedMetadata}
+                                onEnded={handleEnded}
+                            />
+                        )}
+                        {selectedMedia?.type === 'audio' && (
+                            <>
+                                <div className="lc-smp-audio-bg">
+                                    <Headphones size={32} />
+                                    <span className="lc-smp-audio-title">{selectedMedia.title}</span>
+                                </div>
+                                <audio
+                                    ref={audioRef}
+                                    src={selectedMedia.url}
+                                    onTimeUpdate={handleTimeUpdate}
+                                    onLoadedMetadata={handleLoadedMetadata}
+                                    onEnded={handleEnded}
+                                />
+                            </>
+                        )}
+                        {mediaOnLive && <div className="lc-smp-live-bar">● LIVE</div>}
+                    </div>
+
+                    {/* File info (not shown for audio since audio bg already shows title) */}
+                    {selectedMedia && selectedMedia.type !== 'audio' && (
+                        <div className="lc-smp-info">
+                            <span className="lc-smp-info-title">{selectedMedia.title}</span>
+                            <span className="lc-smp-info-badge">{selectedMedia.extension.toUpperCase()}</span>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Scrubber — video/audio only */}
+                    {selectedMedia && (selectedMedia.type === 'video' || selectedMedia.type === 'audio') && (
+                        <div className="lc-smp-scrubber">
+                            <span className="lc-smp-time">{formatTime(currentTime)}</span>
+                            <input
+                                type="range"
+                                className="lc-smp-range"
+                                min={0}
+                                max={duration || 1}
+                                step={0.5}
+                                value={currentTime}
+                                onChange={handleScrub}
+                            />
+                            <span className="lc-smp-time">{formatTime(duration)}</span>
+                        </div>
+                    )}
+
+                    {/* Controls */}
                     <div className="lc-smp-controls">
-                        <button className="lc-smp-btn"><SkipBack /></button>
-                        <button className="lc-smp-btn"><Play /></button>
-                        <button className="lc-smp-btn"><SkipForward /></button>
+                        {selectedMedia && (selectedMedia.type === 'video' || selectedMedia.type === 'audio') && (
+                            <>
+                                <button className="lc-smp-btn" onClick={() => {
+                                    const el = getMediaEl();
+                                    if (el) el.currentTime = Math.max(0, el.currentTime - 10);
+                                }}>
+                                    <SkipBack />
+                                </button>
+                                <button className="lc-smp-btn" onClick={handlePlayPause}>
+                                    {isPlaying ? <Pause /> : <Play />}
+                                </button>
+                                <button className="lc-smp-btn" onClick={() => {
+                                    const el = getMediaEl();
+                                    if (el) el.currentTime = Math.min(duration, el.currentTime + 10);
+                                }}>
+                                    <SkipForward />
+                                </button>
+                            </>
+                        )}
                         <div className="lc-smp-spacer" />
-                        <button className="lc-smp-send-btn">Send Live</button>
+                        <button
+                            className={`lc-smp-send-btn${mediaOnLive ? ' active' : ''}`}
+                            onClick={() => setMediaOnLive(v => !v)}
+                            disabled={!selectedMedia}
+                        >
+                            {mediaOnLive ? 'On Live' : 'Send Live'}
+                        </button>
                     </div>
+
                 </div>
             </div>
 
@@ -418,6 +656,19 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
             />
         )}
 
+        {/* ── Media Context Menu ── */}
+        {mediaCtx && (
+            <MediaContextMenu
+                x={mediaCtx.x}
+                y={mediaCtx.y}
+                file={mediaCtx.file}
+                currentFolderId={mediaCtx.folderId}
+                mediaFolders={mediaFolders}
+                onClose={() => setMediaCtx(null)}
+                onDelete={file => { setMediaCtx(null); setMediaToDelete(file); }}
+            />
+        )}
+
         {/* ── Modals ── */}
         <BibleModal open={bibleModal} onClose={() => setBibleModal(false)} verseFolders={verseFolders} />
         <SongModal
@@ -426,6 +677,8 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
             songFolders={songFolders}
             editData={editSong ?? undefined}
         />
+        <MediaUploadModal open={uploadModal} onClose={() => setUploadModal(false)} mediaFolders={mediaFolders} />
+
         {songToDelete && (
             <SongDeleteModal song={songToDelete} onClose={() => setSongToDelete(null)} />
         )}
@@ -437,6 +690,12 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
         )}
         {verseToDelete && (
             <VerseDeleteModal verse={verseToDelete} onClose={() => setVerseToDelete(null)} />
+        )}
+        {mediaFolderToDelete && (
+            <MediaFolderDeleteModal folder={mediaFolderToDelete} onClose={() => setMediaFolderToDelete(null)} />
+        )}
+        {mediaToDelete && (
+            <MediaDeleteModal file={mediaToDelete} onClose={() => setMediaToDelete(null)} />
         )}
 
         {/* Song Folder Modal (create + rename) */}
@@ -500,6 +759,40 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
                             <button type="button" className="lc-modal-btn" onClick={() => setVerseFolderModal(null)}>Cancel</button>
                             <button type="submit" className="lc-modal-btn primary" disabled={verseFolderForm.processing}>
                                 {verseFolderForm.processing ? 'Saving…' : verseFolderModal.mode === 'create' ? 'Create Folder' : 'Save'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        )}
+
+        {/* Media Folder Modal (create + rename) */}
+        {mediaFolderModal && (
+            <div className="lc-modal-backdrop" onClick={() => setMediaFolderModal(null)}>
+                <div className="lc-modal" onClick={e => e.stopPropagation()}>
+                    <div className="lc-modal-header">
+                        <span>{mediaFolderModal.mode === 'create' ? 'New Folder' : 'Rename Folder'}</span>
+                        <button className="lc-modal-close" onClick={() => setMediaFolderModal(null)}>✕</button>
+                    </div>
+                    <form onSubmit={submitMediaFolderModal}>
+                        <div className="lc-modal-body">
+                            <label className="lc-modal-label">Folder Name</label>
+                            <input
+                                className={`lc-modal-input${mediaFolderForm.errors.name ? ' error' : ''}`}
+                                type="text"
+                                placeholder="e.g. Sunday Service"
+                                value={mediaFolderForm.data.name}
+                                onChange={e => mediaFolderForm.setData('name', e.target.value)}
+                                autoFocus
+                            />
+                            {mediaFolderForm.errors.name && (
+                                <span className="lc-modal-error">{mediaFolderForm.errors.name}</span>
+                            )}
+                        </div>
+                        <div className="lc-modal-footer">
+                            <button type="button" className="lc-modal-btn" onClick={() => setMediaFolderModal(null)}>Cancel</button>
+                            <button type="submit" className="lc-modal-btn primary" disabled={mediaFolderForm.processing}>
+                                {mediaFolderForm.processing ? 'Saving…' : mediaFolderModal.mode === 'create' ? 'Create Folder' : 'Save'}
                             </button>
                         </div>
                     </form>

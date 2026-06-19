@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Console;
 
 use App\Http\Controllers\Controller;
 use App\Models\MediaFile;
+use App\Models\MediaFolder;
 use App\Models\SavedVerse;
 use App\Models\Schedule;
 use App\Models\VerseFolder;
@@ -166,18 +167,33 @@ class ConsoleController extends Controller
             ->orderBy('testament')->orderBy('reference')
             ->get()->map($verseMapFn);
 
-        $mediaFiles = MediaFile::orderBy('type')->orderBy('title')
+        $mediaMapFn = fn ($m) => [
+            'id'               => $m->id,
+            'folder_id'        => $m->folder_id,
+            'title'            => $m->title,
+            'type'             => $m->type,
+            'extension'        => $m->extension,
+            'mime_type'        => $m->mime_type,
+            'file_size'        => $m->size,
+            'width'            => $m->width,
+            'height'           => $m->height,
+            'duration_seconds' => $m->duration_seconds,
+            'is_looping'       => $m->is_looping,
+            'url'              => $m->url,
+        ];
+
+        $mediaFolders = MediaFolder::with(['files' => fn ($q) => $q->orderBy('type')->orderBy('title')])
+            ->orderBy('sort_order')
             ->get()
-            ->map(fn ($m) => [
-                'id'               => $m->id,
-                'title'            => $m->title,
-                'type'             => $m->type,
-                'extension'        => $m->extension,
-                'width'            => $m->width,
-                'height'           => $m->height,
-                'duration_seconds' => $m->duration_seconds,
-                'is_looping'       => $m->is_looping,
+            ->map(fn ($f) => [
+                'id'    => $f->id,
+                'name'  => $f->name,
+                'files' => $f->files->map($mediaMapFn),
             ]);
+
+        $uncategorizedMedia = MediaFile::whereNull('folder_id')
+            ->orderBy('type')->orderBy('title')
+            ->get()->map($mediaMapFn);
 
         $slideDecks = SlideDeck::orderBy('title')
             ->get()
@@ -261,7 +277,8 @@ class ConsoleController extends Controller
             'uncategorizedSongs' => $uncategorizedSongs,
             'verseFolders'  => $verseFolders,
             'savedVerses'   => $savedVerses,
-            'mediaFiles'  => $mediaFiles,
+            'mediaFolders'       => $mediaFolders,
+            'uncategorizedMedia' => $uncategorizedMedia,
             'slideDecks'  => $slideDecks,
             'schedule'     => $schedule,
             'themes'       => $themes,

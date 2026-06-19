@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Console\BibleController;
 use App\Http\Controllers\Console\ConsoleController;
+use App\Http\Controllers\Console\MediaController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login')->name('home');
@@ -18,6 +19,15 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/console/verse-folders',                [BibleController::class, 'storeFolder'])->name('console.verse-folders.store');
     Route::patch('/console/verse-folders/{verseFolder}', [BibleController::class, 'updateFolder'])->name('console.verse-folders.update');
     Route::delete('/console/verse-folders/{verseFolder}',[BibleController::class, 'destroyFolder'])->name('console.verse-folders.destroy');
+
+    // Media Files
+    Route::post('/console/media',                              [MediaController::class, 'store'])->name('console.media.store');
+    Route::delete('/console/media/{mediaFile}',                [MediaController::class, 'destroy'])->name('console.media.destroy');
+    Route::patch('/console/media/{mediaFile}/move',            [MediaController::class, 'moveFile'])->name('console.media.move');
+    // Media Folders
+    Route::post('/console/media-folders',                      [MediaController::class, 'storeFolder'])->name('console.media-folders.store');
+    Route::patch('/console/media-folders/{mediaFolder}',       [MediaController::class, 'updateFolder'])->name('console.media-folders.update');
+    Route::delete('/console/media-folders/{mediaFolder}',      [MediaController::class, 'destroyFolder'])->name('console.media-folders.destroy');
 
     Route::post('/console/songs',              [ConsoleController::class, 'storeSong'])->name('console.songs.store');
     Route::patch('/console/songs/{song}',      [ConsoleController::class, 'updateSong'])->name('console.songs.update');

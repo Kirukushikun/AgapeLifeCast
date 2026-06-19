@@ -33,13 +33,23 @@ export interface VerseFolder {
 
 export interface MediaFile {
     id: number;
+    folder_id: number | null;
     title: string;
     type: 'image' | 'video' | 'audio';
     extension: string;
+    mime_type: string | null;
+    file_size: number;
     width: number | null;
     height: number | null;
     duration_seconds: number | null;
     is_looping: boolean;
+    url: string;
+}
+
+export interface MediaFolder {
+    id: number;
+    name: string;
+    files: MediaFile[];
 }
 
 export interface SlideDeck {
@@ -90,14 +100,15 @@ interface Props {
     uncategorizedSongs: SongItem[];
     verseFolders: VerseFolder[];
     savedVerses: SavedVerse[];
-    mediaFiles: MediaFile[];
+    mediaFolders: MediaFolder[];
+    uncategorizedMedia: MediaFile[];
     slideDecks: SlideDeck[];
     schedule: ScheduleData | null;
     themes: ThemeData[];
     selectedSong: SelectedSong | null;
 }
 
-export default function Index({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFiles, slideDecks, schedule, themes, selectedSong }: Props) {
+export default function Index({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDecks, schedule, themes, selectedSong }: Props) {
     const [selectedVerse, setSelectedVerse] = useState<SavedVerse | null>(null);
 
     const handleVerseSelect = (verse: SavedVerse) => setSelectedVerse(verse);
@@ -112,7 +123,8 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
                     uncategorizedSongs={uncategorizedSongs}
                     verseFolders={verseFolders}
                     savedVerses={savedVerses}
-                    mediaFiles={mediaFiles}
+                    mediaFolders={mediaFolders}
+                    uncategorizedMedia={uncategorizedMedia}
                     slideDecks={slideDecks}
                     activeSongId={selectedSong?.id ?? null}
                     activeVerseId={selectedVerse?.id ?? null}

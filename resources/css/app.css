@@ -626,7 +626,7 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
     max-height: 0;
     transition: max-height .3s cubic-bezier(.4,0,.2,1);
 }
-.lc-smp.expanded .lc-smp-body { max-height: 260px; }
+.lc-smp.expanded .lc-smp-body { max-height: 320px; }
 
 .lc-smp-screen {
     width: 100%;
@@ -679,6 +679,108 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
     transition: all .12s;
 }
 .lc-smp-send-btn:hover { background: var(--lc-green); color: #fff; }
+.lc-smp-send-btn.active { background: var(--lc-green); color: #fff; }
+.lc-smp-send-btn:disabled { opacity: .4; cursor: default; }
+
+/* SMP — media content */
+.lc-smp-image {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    display: block;
+}
+.lc-smp-video {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    display: block;
+}
+.lc-smp-audio-bg {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    color: var(--lc-green); opacity: .85;
+}
+.lc-smp-audio-title {
+    font-size: .65rem; font-weight: 600; color: var(--lc-text-muted);
+    text-align: center; padding: 0 8px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;
+}
+.lc-smp-live-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(255, 60, 60, .85);
+    color: #fff; font-size: .6rem; font-weight: 700; letter-spacing: 1px;
+    text-align: center; padding: 2px 0;
+    font-family: 'Poppins', sans-serif;
+}
+.lc-smp-screen { position: relative; }
+
+/* SMP — file info row */
+.lc-smp-info {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 8px 0;
+    overflow: hidden;
+}
+.lc-smp-info-title {
+    flex: 1; font-size: .68rem; font-weight: 600; color: var(--lc-text-primary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lc-smp-info-badge {
+    font-size: .58rem; font-weight: 700; letter-spacing: .5px;
+    color: var(--lc-text-muted);
+    background: var(--lc-bg-panel-alt);
+    padding: 1px 5px; border-radius: 3px;
+    flex-shrink: 0;
+}
+
+/* SMP — scrubber */
+.lc-smp-scrubber {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 8px 0;
+}
+.lc-smp-time {
+    font-size: .6rem; color: var(--lc-text-muted);
+    font-family: 'Poppins', sans-serif; min-width: 28px;
+}
+.lc-smp-time:last-child { text-align: right; }
+.lc-smp-range {
+    flex: 1; height: 3px; cursor: pointer;
+    accent-color: var(--lc-green);
+}
+
+/* ── Modal shared helpers ── */
+.lc-modal-desc {
+    font-size: .78rem; color: var(--lc-text-secondary); margin: 0 0 14px;
+    line-height: 1.5;
+}
+.lc-radio-group { display: flex; flex-direction: column; gap: 8px; }
+.lc-radio-option {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: .78rem; color: var(--lc-text-secondary); cursor: pointer;
+}
+.lc-radio-option input[type="radio"] { margin-top: 2px; flex-shrink: 0; accent-color: var(--lc-green); }
+.lc-modal-checkbox {
+    display: flex; align-items: center; gap: 8px;
+    font-size: .78rem; color: var(--lc-text-secondary); cursor: pointer; margin-top: 4px;
+}
+.lc-modal-checkbox input[type="checkbox"] { accent-color: var(--lc-green); }
+
+/* ── Upload zone ── */
+.lc-upload-zone {
+    border: 1.5px dashed var(--lc-border);
+    border-radius: 8px;
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    margin-bottom: 14px;
+}
+.lc-upload-zone:hover { border-color: var(--lc-green); background: rgba(140, 195, 65, .06); }
+.lc-upload-zone.has-file { border-color: var(--lc-green); background: rgba(74, 222, 128, .05); }
+.lc-upload-icon { font-size: 1.4rem; }
+.lc-upload-hint { font-size: .78rem; font-weight: 600; color: var(--lc-text-secondary); }
+.lc-upload-types { font-size: .68rem; color: var(--lc-text-muted); }
+.lc-upload-filename {
+    font-size: .78rem; font-weight: 600; color: var(--lc-green);
+    word-break: break-all;
+}
 
 /* ─────────────────────────────────────────────
    Center — Preview Area
@@ -1800,7 +1902,7 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
 
 .lc-bible-result { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 .lc-bible-result-ref {
-    font-size: 11px; font-weight: 700; color: var(--lc-accent);
+    font-size: 11px; font-weight: 700; color: var(--lc-green);
     text-transform: uppercase; letter-spacing: 1px;
 }
 .lc-bible-result-text {
@@ -1819,7 +1921,7 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
     border: none; cursor: pointer; transition: background .15s, color .15s;
 }
 .lc-testament-btn:first-child { border-right: 1px solid var(--lc-border); }
-.lc-testament-btn.active { background: var(--lc-accent); color: #fff; }
+.lc-testament-btn.active { background: var(--lc-green); color: #fff; }
 .lc-bible-manual-textarea {
     resize: vertical; min-height: 100px; font-size: 13px; line-height: 1.7;
 }
