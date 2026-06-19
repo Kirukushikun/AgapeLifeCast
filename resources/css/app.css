@@ -143,6 +143,131 @@
 }
 
 /* ─────────────────────────────────────────────
+   Auth — Login / Loading Screen
+───────────────────────────────────────────── */
+.lc-ls-screen {
+    position: fixed; inset: 0; z-index: 99999;
+    background: #080e05;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    overflow: hidden;
+}
+.lc-ls-grid {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(140,195,65,.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+}
+.lc-ls-glow {
+    position: absolute; width: 520px; height: 520px;
+    background: radial-gradient(circle, rgba(140,195,65,.18) 0%, transparent 68%);
+    border-radius: 50%;
+    animation: lc-ls-glow-pulse 2.2s ease-in-out .2s infinite alternate;
+    pointer-events: none;
+}
+@keyframes lc-ls-glow-pulse {
+    from { transform: scale(.85); opacity: .5; }
+    to   { transform: scale(1.15); opacity: 1; }
+}
+.lc-ls-brand {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center;
+    transition: transform .65s cubic-bezier(.4,0,.2,1);
+}
+.lc-ls-brand.show-login { transform: translateY(-28px); }
+.lc-ls-logo {
+    width: 300px; opacity: 0;
+    transform: scale(.8) translateY(8px);
+    filter: drop-shadow(0 0 28px rgba(140,195,65,.45));
+    animation: lc-ls-logo-in .75s cubic-bezier(.34,1.56,.64,1) .35s forwards;
+}
+@keyframes lc-ls-logo-in { to { opacity: 1; transform: scale(1) translateY(0); } }
+.lc-ls-tagline {
+    font-family: 'Poppins', sans-serif; font-size: .7rem; font-weight: 500;
+    color: rgba(255,255,255,.3); letter-spacing: 4px; text-transform: uppercase;
+    margin-top: 14px; opacity: 0;
+    animation: lc-ls-fade-in .45s ease 1.4s forwards;
+}
+@keyframes lc-ls-fade-in { to { opacity: 1; } }
+.lc-ls-bar-wrap {
+    width: 180px; height: 2px; margin-top: 44px;
+    background: rgba(255,255,255,.08); border-radius: 2px;
+    overflow: hidden; opacity: 0;
+    animation: lc-ls-fade-in .3s ease 1.55s forwards;
+    transition: opacity .4s ease, max-height .4s ease, margin .4s ease;
+    max-height: 20px;
+}
+.lc-ls-bar {
+    height: 100%; width: 0%; border-radius: 2px;
+    background: linear-gradient(90deg, #4a7a10, #8cc341, #c5f06a);
+    box-shadow: 0 0 8px rgba(140,195,65,.7);
+    animation: lc-ls-bar-fill 1.7s cubic-bezier(.4,0,.15,1) 1.6s forwards;
+}
+@keyframes lc-ls-bar-fill { to { width: 100%; } }
+.lc-ls-status {
+    font-family: 'Poppins', sans-serif; font-size: .68rem;
+    color: rgba(255,255,255,.22); margin-top: 10px; letter-spacing: 1px;
+    opacity: 0; animation: lc-ls-fade-in .3s ease 1.55s forwards;
+    transition: opacity .4s ease, max-height .4s ease, margin .4s ease;
+    max-height: 20px;
+}
+.lc-ls-bar-wrap.hide,
+.lc-ls-status.hide { opacity: 0 !important; max-height: 0; margin-top: 0; margin-bottom: 0; }
+
+.lc-ls-form {
+    position: relative; width: 300px;
+    display: flex; flex-direction: column; gap: 10px;
+    margin-top: 18px;
+    opacity: 0; transform: translateY(22px);
+    pointer-events: none;
+    transition: opacity .55s ease, transform .55s cubic-bezier(.34,1.1,.64,1);
+}
+.lc-ls-form.show {
+    opacity: 1; transform: translateY(0); pointer-events: auto;
+    transition: opacity .55s ease .35s, transform .55s cubic-bezier(.34,1.1,.64,1) .35s;
+}
+.lc-ls-form-label {
+    font-family: 'Poppins', sans-serif; font-size: .65rem; font-weight: 600;
+    color: rgba(255,255,255,.25); letter-spacing: 3px; text-transform: uppercase;
+    text-align: center; margin-bottom: 2px;
+}
+.lc-ls-input {
+    width: 100%; padding: 11px 14px; box-sizing: border-box;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.11);
+    border-radius: 8px; color: #fff;
+    font-family: 'Poppins', sans-serif; font-size: .82rem;
+    outline: none; transition: border-color .2s, background .2s;
+}
+.lc-ls-input::placeholder { color: rgba(255,255,255,.28); }
+.lc-ls-input:focus { border-color: #8cc341; background: rgba(140,195,65,.07); }
+.lc-ls-input.has-error { border-color: rgba(229,57,53,.6); }
+.lc-ls-error {
+    font-size: .72rem; color: rgba(229,57,53,.85);
+    font-family: 'Poppins', sans-serif; margin-top: -4px;
+}
+.lc-ls-submit {
+    width: 100%; padding: 11px; margin-top: 2px;
+    background: linear-gradient(135deg, #4a7a10, #8cc341);
+    border: none; border-radius: 8px; color: #fff;
+    font-family: 'Poppins', sans-serif; font-size: .82rem;
+    font-weight: 600; letter-spacing: .5px; cursor: pointer;
+    box-shadow: 0 4px 18px rgba(140,195,65,.3);
+    transition: opacity .2s, transform .1s, box-shadow .2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.lc-ls-submit:hover  { opacity: .9; box-shadow: 0 6px 22px rgba(140,195,65,.45); }
+.lc-ls-submit:active { transform: scale(.98); }
+.lc-ls-submit:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.lc-ls-spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: lc-ls-spin .7s linear infinite;
+}
+@keyframes lc-ls-spin { to { transform: rotate(360deg); } }
+
+/* ─────────────────────────────────────────────
    Global scrollbar (thin, matches brand)
 ───────────────────────────────────────────── */
 ::-webkit-scrollbar              { width: 5px; height: 5px; }

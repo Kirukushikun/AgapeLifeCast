@@ -3,29 +3,9 @@ import {
     Music, BookOpen, Film, Image, FileText, Presentation,
     FolderPlus, Upload, Plus, ChevronDown, SkipBack, SkipForward, Play,
 } from 'lucide-react';
+import type { SongFolder } from '@/pages/Console/Index';
 
 type Tab = 'songs' | 'bible' | 'media' | 'slides';
-
-const SONGS_FOLDERS = [
-    {
-        name: 'Contemporary',
-        items: [
-            { title: '10,000 Reasons',         meta: 'Matt Redman · 5 slides' },
-            { title: 'Goodness of God',         meta: 'Bethel Music · 5 slides' },
-            { title: 'How Great Is Our God',    meta: 'Chris Tomlin · 5 slides' },
-            { title: 'Oceans (Where Feet May Fail)', meta: 'Hillsong · 5 slides' },
-            { title: 'What A Beautiful Name',   meta: 'Hillsong · 6 slides' },
-        ],
-    },
-    {
-        name: 'Hymns',
-        items: [
-            { title: 'Amazing Grace',          meta: 'Hymn · 6 slides', active: true },
-            { title: 'Blessed Assurance',      meta: 'Hymn · 4 slides' },
-            { title: 'Great Is Thy Faithfulness', meta: 'Hymn · 4 slides' },
-        ],
-    },
-];
 
 const BIBLE_ITEMS = [
     { title: 'Isaiah 40:31',      meta: 'KJV · Old Testament' },
@@ -60,7 +40,7 @@ const SEARCH_PLACEHOLDERS: Record<Tab, string> = {
     slides: 'Search slides…',
 };
 
-export default function LibraryPanel() {
+export default function LibraryPanel({ songFolders }: { songFolders: SongFolder[] }) {
     const [activeTab, setActiveTab]       = useState<Tab>('songs');
     const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
     const [smpExpanded, setSmpExpanded]   = useState(false);
@@ -106,24 +86,26 @@ export default function LibraryPanel() {
                         </button>
                     </div>
 
-                    {SONGS_FOLDERS.map(folder => (
+                    {songFolders.map(folder => (
                         <div
-                            key={folder.name}
+                            key={folder.id}
                             className={`lc-library-folder${collapsedFolders.has(folder.name) ? ' collapsed' : ''}`}
                         >
                             <div className="lc-folder-row" onClick={() => toggleFolder(folder.name)}>
                                 <span className="lc-folder-chevron"><ChevronDown /></span>
                                 <span>📁</span>
                                 <span className="lc-folder-name">{folder.name}</span>
-                                <span className="lc-folder-count">{folder.items.length}</span>
+                                <span className="lc-folder-count">{folder.songs.length}</span>
                             </div>
                             <div className="lc-folder-contents">
-                                {folder.items.map(item => (
-                                    <div key={item.title} className={`lc-library-item${item.active ? ' active' : ''}`}>
+                                {folder.songs.map(song => (
+                                    <div key={song.id} className="lc-library-item">
                                         <div className="lc-item-icon lc-icon-song"><Music /></div>
                                         <div className="lc-item-info">
-                                            <div className="lc-item-title">{item.title}</div>
-                                            <div className="lc-item-meta">{item.meta}</div>
+                                            <div className="lc-item-title">{song.title}</div>
+                                            <div className="lc-item-meta">
+                                                {song.author ?? 'Unknown'} · {song.slide_count} slides
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

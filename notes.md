@@ -1,3 +1,6 @@
+admin@lcmi.org
+password
+
 Perfect, that workflow translates almost 1-to-1 into React/Inertia. Here's the mental model:
 
 The Livewire → React/Inertia equivalent:
@@ -54,3 +57,27 @@ app/Http/Controllers/
 └── Admin/
     └── AdminController.php
 So if you later add a Division Head module, it's just pages/DivisionHead/, components/DivisionHead/, and app/Http/Controllers/DivisionHead/ — same exact pattern, no framework magic involved. Each folder is just a convention you define and Inertia resolves by matching the string you pass to Inertia::render('DivisionHead/Index') to the file at resources/js/pages/DivisionHead/Index.tsx.
+
+1. Login page redesign (frontend, quick)
+The mockup has a full-screen branded login — loading animation, LCMI logo, green accents. Right now it's still the plain Breeze-style form. This finishes the full frontend picture.
+
+2. Database + models (backend foundation)
+Before wiring anything, we need the schema:
+
+songs + slides (title, author, folder, slide order, lyrics)
+schedules + schedule_items (ordered list of songs/verses/media)
+themes (bg type, colors, text color)
+media files (stored in Laravel storage)
+This is one migration session — short but everything else depends on it.
+
+3. Wire the Library panel (Inertia props → real data)
+ConsoleController::index() starts passing real songs/folders from DB. LibraryPanel stops using hardcoded arrays. This is the first "it's alive" moment.
+
+4. Wire the Schedule (drag-to-add + persist)
+Clicking a song in the library adds it to the Schedule in the right panel. Schedule persists to DB. This is the core workflow loop.
+
+5. Wire PreviewArea (slides from selected song)
+Selecting a schedule item loads its actual slides into the thumb strip and preview screens.
+
+6. Real-time — Reverb + Live Window (the payoff)
+Open Live Window opens a second browser tab/window that receives slide pushes via Laravel Echo. "Send to Live" broadcasts the current slide — that tab updates instantly on the projector.

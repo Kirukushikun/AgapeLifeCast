@@ -1,86 +1,101 @@
+import { useEffect, useState } from 'react';
 import { Form, Head } from '@inertiajs/react';
 import InputError from '@/components/input-error';
-import PasswordInput from '@/components/password-input';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-type Props = {
-    status?: string;
-};
+
+type Props = { status?: string };
 
 export default function Login({ status }: Props) {
+    const [showLogin, setShowLogin] = useState(false);
+
+    useEffect(() => {
+        const t = setTimeout(() => setShowLogin(true), 3400);
+        return () => clearTimeout(t);
+    }, []);
+
     return (
         <>
-            <Head title="Log in" />
+            <Head title="Sign In" />
 
-            <Form
-                action="/login"
-                method="post"
-                resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
+            <div className="lc-ls-screen">
+                <div className="lc-ls-grid" />
+                <div className="lc-ls-glow" />
+
+                {/* Brand — slides up when login shows */}
+                <div className={`lc-ls-brand${showLogin ? ' show-login' : ''}`}>
+                    <img
+                        className="lc-ls-logo"
+                        src="/images/lcmi-lifecast.png"
+                        alt="LCMI LifeCast"
+                    />
+                    <div className="lc-ls-tagline">Presentation · Made Simple</div>
+                </div>
+
+                {/* Loading bar + status — hidden when login shows */}
+                <div className={`lc-ls-bar-wrap${showLogin ? ' hide' : ''}`}>
+                    <div className="lc-ls-bar" />
+                </div>
+                <div className={`lc-ls-status${showLogin ? ' hide' : ''}`}>
+                    Starting up…
+                </div>
+
+                {/* Login form — appears after loading */}
+                <Form
+                    action="/login"
+                    method="post"
+                    resetOnSuccess={['password']}
+                    className={`lc-ls-form${showLogin ? ' show' : ''}`}
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <div className="lc-ls-form-label">Sign in to continue</div>
+
+                            <div>
+                                <input
+                                    className={`lc-ls-input${errors.email ? ' has-error' : ''}`}
                                     type="email"
                                     name="email"
-                                    required
+                                    placeholder="Email address"
+                                    autoComplete="email"
                                     autoFocus
                                     tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
                                 />
-                                <InputError message={errors.email} />
+                                <InputError message={errors.email} className="lc-ls-error" />
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
-                                <PasswordInput
-                                    id="password"
+                            <div>
+                                <input
+                                    className={`lc-ls-input${errors.password ? ' has-error' : ''}`}
+                                    type="password"
                                     name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
                                     placeholder="Password"
+                                    autoComplete="current-password"
+                                    tabIndex={2}
                                 />
-                                <InputError message={errors.password} />
+                                <InputError message={errors.password} className="lc-ls-error" />
                             </div>
 
-                            <div className="flex items-center space-x-3">
-                                <Checkbox id="remember" name="remember" tabIndex={3} />
-                                <Label htmlFor="remember">Remember me</Label>
-                            </div>
-
-                            <Button
+                            <button
+                                className="lc-ls-submit"
                                 type="submit"
-                                className="mt-4 w-full"
-                                tabIndex={4}
                                 disabled={processing}
+                                tabIndex={3}
                             >
-                                {processing && <Spinner />}
-                                Log in
-                            </Button>
-                        </div>
-                    </>
-                )}
-            </Form>
+                                {processing && <span className="lc-ls-spinner" />}
+                                {processing ? 'Signing in…' : 'Sign In'}
+                            </button>
 
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
+                            {status && (
+                                <div className="lc-ls-error" style={{ textAlign: 'center' }}>
+                                    {status}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </Form>
+            </div>
         </>
     );
 }
 
-Login.layout = {
-    title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
-};
+// Bypass the default auth layout — this page is self-contained full-screen
+(Login as any).layout = null;
