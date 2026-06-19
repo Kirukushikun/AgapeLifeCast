@@ -1,37 +1,14 @@
 import { useState } from 'react';
 import {
-    Music, BookOpen, Film, Image, FileText, Presentation,
+    Music, BookOpen, Film, Image, Headphones, FileText, Presentation,
     FolderPlus, Upload, Plus, ChevronDown, SkipBack, SkipForward, Play,
 } from 'lucide-react';
-import type { SongFolder } from '@/pages/Console/Index';
+import type { SongFolder, SavedVerse, MediaFile, SlideDeck } from '@/pages/Console/Index';
 
 type Tab = 'songs' | 'bible' | 'media' | 'slides';
 
-const BIBLE_ITEMS = [
-    { title: 'Isaiah 40:31',      meta: 'KJV · Old Testament' },
-    { title: 'Jeremiah 29:11',    meta: 'NIV · Old Testament' },
-    { title: 'John 3:16',         meta: 'NIV · New Testament' },
-    { title: 'Philippians 4:13',  meta: 'KJV · New Testament' },
-    { title: 'Psalm 23',          meta: 'KJV · Old Testament' },
-    { title: 'Romans 8:28',       meta: 'NIV · New Testament' },
-];
 
-const MEDIA_ITEMS = [
-    { title: 'Announcement Slide',       meta: 'JPG · 1920×1080', type: 'image' as const },
-    { title: 'Church Logo',              meta: 'PNG · 1920×1080', type: 'image' as const },
-    { title: 'Easter Background',        meta: 'JPG · 3840×2160', type: 'image' as const },
-    { title: 'Offering Background',      meta: 'MP4 · 3:20',      type: 'video' as const },
-    { title: 'Welcome Video',            meta: 'MP4 · 1:42',      type: 'video' as const },
-    { title: 'Worship Background Loop',  meta: 'MP4 · 5:00 · Looping', type: 'video' as const },
-];
 
-const SLIDES_ITEMS = [
-    { title: 'Sermon Notes – June',        meta: 'PPTX · 12 slides', type: 'ppt' as const },
-    { title: 'Sunday Announcements',       meta: 'PPTX · 8 slides',  type: 'ppt' as const },
-    { title: 'Church Vision 2026',         meta: 'PDF · 5 slides',   type: 'pdf' as const },
-    { title: 'Baptism Order of Service',   meta: 'PPTX · 4 slides',  type: 'ppt' as const },
-    { title: 'Christmas Program',          meta: 'PPTX · 20 slides', type: 'ppt' as const },
-];
 
 const SEARCH_PLACEHOLDERS: Record<Tab, string> = {
     songs:  'Search songs…',
@@ -40,7 +17,21 @@ const SEARCH_PLACEHOLDERS: Record<Tab, string> = {
     slides: 'Search slides…',
 };
 
-export default function LibraryPanel({ songFolders }: { songFolders: SongFolder[] }) {
+function formatMediaMeta(item: MediaFile): string {
+    const ext = item.extension.toUpperCase();
+    if (item.type === 'image' && item.width && item.height) {
+        return `${ext} · ${item.width}×${item.height}`;
+    }
+    if ((item.type === 'video' || item.type === 'audio') && item.duration_seconds) {
+        const m = Math.floor(item.duration_seconds / 60);
+        const s = String(item.duration_seconds % 60).padStart(2, '0');
+        const loop = item.is_looping ? ' · Looping' : '';
+        return `${ext} · ${m}:${s}${loop}`;
+    }
+    return ext;
+}
+
+export default function LibraryPanel({ songFolders, savedVerses, mediaFiles, slideDecks }: { songFolders: SongFolder[]; savedVerses: SavedVerse[]; mediaFiles: MediaFile[]; slideDecks: SlideDeck[] }) {
     const [activeTab, setActiveTab]       = useState<Tab>('songs');
     const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
     const [smpExpanded, setSmpExpanded]   = useState(false);
@@ -126,12 +117,14 @@ export default function LibraryPanel({ songFolders }: { songFolders: SongFolder[
                             <Plus size={11} /> Add Verse
                         </button>
                     </div>
-                    {BIBLE_ITEMS.map(item => (
-                        <div key={item.title} className="lc-library-item">
+                    {savedVerses.map(verse => (
+                        <div key={verse.id} className="lc-library-item">
                             <div className="lc-item-icon lc-icon-bible"><BookOpen /></div>
                             <div className="lc-item-info">
-                                <div className="lc-item-title">{item.title}</div>
-                                <div className="lc-item-meta">{item.meta}</div>
+                                <div className="lc-item-title">{verse.reference}</div>
+                                <div className="lc-item-meta">
+                                    {verse.translation} · {verse.testament === 'old' ? 'Old Testament' : 'New Testament'}
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -149,14 +142,20 @@ export default function LibraryPanel({ songFolders }: { songFolders: SongFolder[
                             <Upload size={11} /> Import
                         </button>
                     </div>
-                    {MEDIA_ITEMS.map(item => (
-                        <div key={item.title} className="lc-library-item">
-                            <div className={`lc-item-icon ${item.type === 'video' ? 'lc-icon-video' : 'lc-icon-image'}`}>
-                                {item.type === 'video' ? <Film /> : <Image />}
+                    {mediaFiles.map(item => (
+                        <div key={item.id} className="lc-library-item">
+                            <div className={`lc-item-icon ${
+                                item.type === 'video' ? 'lc-icon-video' :
+                                item.type === 'audio' ? 'lc-icon-audio' :
+                                'lc-icon-image'
+                            }`}>
+                                {item.type === 'video' ? <Film /> :
+                                 item.type === 'audio' ? <Headphones /> :
+                                 <Image />}
                             </div>
                             <div className="lc-item-info">
                                 <div className="lc-item-title">{item.title}</div>
-                                <div className="lc-item-meta">{item.meta}</div>
+                                <div className="lc-item-meta">{formatMediaMeta(item)}</div>
                             </div>
                         </div>
                     ))}
@@ -174,14 +173,16 @@ export default function LibraryPanel({ songFolders }: { songFolders: SongFolder[
                             <Upload size={11} /> Import
                         </button>
                     </div>
-                    {SLIDES_ITEMS.map(item => (
-                        <div key={item.title} className="lc-library-item">
-                            <div className={`lc-item-icon ${item.type === 'pdf' ? 'lc-icon-pdf' : 'lc-icon-ppt'}`}>
-                                {item.type === 'pdf' ? <FileText /> : <Presentation />}
+                    {slideDecks.map(deck => (
+                        <div key={deck.id} className="lc-library-item">
+                            <div className={`lc-item-icon ${deck.extension === 'pdf' ? 'lc-icon-pdf' : 'lc-icon-ppt'}`}>
+                                {deck.extension === 'pdf' ? <FileText /> : <Presentation />}
                             </div>
                             <div className="lc-item-info">
-                                <div className="lc-item-title">{item.title}</div>
-                                <div className="lc-item-meta">{item.meta}</div>
+                                <div className="lc-item-title">{deck.title}</div>
+                                <div className="lc-item-meta">
+                                    {deck.extension.toUpperCase()} · {deck.slide_count} slides
+                                </div>
                             </div>
                         </div>
                     ))}

@@ -16,16 +16,44 @@ export interface SongFolder {
     songs: SongItem[];
 }
 
-interface Props {
-    songFolders: SongFolder[];
+export interface SavedVerse {
+    id: number;
+    reference: string;
+    translation: string;
+    testament: 'old' | 'new';
 }
 
-export default function Index({ songFolders }: Props) {
+export interface MediaFile {
+    id: number;
+    title: string;
+    type: 'image' | 'video' | 'audio';
+    extension: string;
+    width: number | null;
+    height: number | null;
+    duration_seconds: number | null;
+    is_looping: boolean;
+}
+
+export interface SlideDeck {
+    id: number;
+    title: string;
+    extension: string;
+    slide_count: number;
+}
+
+interface Props {
+    songFolders: SongFolder[];
+    savedVerses: SavedVerse[];
+    mediaFiles: MediaFile[];
+    slideDecks: SlideDeck[];
+}
+
+export default function Index({ songFolders, savedVerses, mediaFiles, slideDecks }: Props) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
             <Topbar />
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                <LibraryPanel songFolders={songFolders} />
+                <LibraryPanel songFolders={songFolders} savedVerses={savedVerses} mediaFiles={mediaFiles} slideDecks={slideDecks} />
                 <PreviewArea />
                 <PropertiesPanel />
             </div>
