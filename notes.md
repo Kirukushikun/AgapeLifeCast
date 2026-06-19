@@ -27,3 +27,30 @@ Create ConsoleController + add the route → so / or /console loads the page
 Create Console/Index.jsx with the full layout shell (topbar + 3-column structure)
 Then pull each section into its own component file one by one
 
+Both fixed. Now for your question about "Console" — it's project-specific, not a framework term. You named it yourself, and the pattern is yours to extend however you like.
+
+Your instinct is exactly right. The folder convention maps 1:1 to your app's modules or user roles:
+
+
+resources/js/
+├── pages/
+│   ├── Console/        ← your current module (single-page presenter UI)
+│   ├── Admin/          ← future: Admin module (user management, settings)
+│   │   ├── Index.tsx
+│   │   ├── Users.tsx
+│   │   └── Reports.tsx
+│   └── auth/           ← auth is lowercase by Laravel Breeze convention
+│
+└── components/
+    ├── Console/        ← components that belong to Console module
+    ├── Admin/          ← components that belong to Admin module
+    └── Shared/         ← reusable across modules (buttons, modals, etc.)
+Same in PHP:
+
+
+app/Http/Controllers/
+├── Console/
+│   └── ConsoleController.php
+└── Admin/
+    └── AdminController.php
+So if you later add a Division Head module, it's just pages/DivisionHead/, components/DivisionHead/, and app/Http/Controllers/DivisionHead/ — same exact pattern, no framework magic involved. Each folder is just a convention you define and Inertia resolves by matching the string you pass to Inertia::render('DivisionHead/Index') to the file at resources/js/pages/DivisionHead/Index.tsx.
