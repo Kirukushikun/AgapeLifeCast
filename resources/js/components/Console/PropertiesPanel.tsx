@@ -4,21 +4,9 @@ import {
     ArrowUp, ArrowDown, AlignJustify, Trash2, GripVertical,
     ChevronDown, Plus, ClipboardList,
 } from 'lucide-react';
+import type { ScheduleData, ThemeData } from '@/pages/Console/Index';
 
 type ComposerType = 'solid' | 'gradient' | 'image';
-
-const SCHEDULE_ITEMS = [
-    { icon: '🎵', name: 'Amazing Grace' },
-    { icon: '📖', name: 'John 3:16' },
-    { icon: '🎵', name: 'How Great Is Our God' },
-];
-
-const THEMES = [
-    { name: 'Dark Forest', bg: 'linear-gradient(135deg,#0d2200,#1e4700)', text: '#fff' },
-    { name: 'Midnight',    bg: '#1a1a2e',                                  text: '#fff' },
-    { name: 'Pure Black',  bg: '#000000',                                  text: '#fff' },
-    { name: 'Deep Blue',   bg: 'linear-gradient(135deg,#0d1b47,#1a3a8f)', text: '#fff' },
-];
 
 const COLORS = [
     { value: '#ffffff', title: 'White'       },
@@ -28,7 +16,7 @@ const COLORS = [
     { value: '#cccccc', title: 'Gray'        },
 ];
 
-export default function PropertiesPanel() {
+export default function PropertiesPanel({ schedule, themes }: { schedule: ScheduleData | null; themes: ThemeData[] }) {
     const [presetOpen, setPresetOpen]           = useState(false);
     const [activeItem, setActiveItem]           = useState(0);
     const [bold, setBold]                       = useState(true);
@@ -99,9 +87,12 @@ export default function PropertiesPanel() {
                 </div>
 
                 <div className="lc-sched-list">
-                    {SCHEDULE_ITEMS.map((item, idx) => (
+                    {(schedule?.items ?? []).length === 0 && (
+                        <div className="lc-sched-empty">No items in schedule yet.</div>
+                    )}
+                    {(schedule?.items ?? []).map((item, idx) => (
                         <div
-                            key={idx}
+                            key={item.id}
                             className={`lc-sched-row${activeItem === idx ? ' active' : ''}`}
                             onClick={() => setActiveItem(idx)}
                         >
@@ -233,11 +224,11 @@ export default function PropertiesPanel() {
                 <h4>Theme</h4>
 
                 <div className="lc-theme-cards">
-                    {THEMES.map((theme, idx) => (
+                    {themes.map((theme, idx) => (
                         <div
-                            key={idx}
+                            key={theme.id}
                             className={`lc-theme-card${activeTheme === idx ? ' active' : ''}`}
-                            style={{ background: theme.bg }}
+                            style={{ background: theme.css_bg }}
                             onClick={() => setActiveTheme(idx)}
                         >
                             <span className="tc-label">{theme.name}</span>

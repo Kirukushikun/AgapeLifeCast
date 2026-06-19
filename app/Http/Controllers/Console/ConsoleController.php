@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Console;
 use App\Http\Controllers\Controller;
 use App\Models\MediaFile;
 use App\Models\SavedVerse;
+use App\Models\Schedule;
 use App\Models\SlideDeck;
 use App\Models\SongFolder;
+use App\Models\Theme;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -59,11 +61,55 @@ class ConsoleController extends Controller
                 'slide_count' => $d->slide_count,
             ]);
 
+        // Most recent schedule with its ordered items + their schedulable resolved
+        $scheduleModel = Schedule::with(['items' => fn ($q) => $q->orderBy('sort_order')])
+            ->with('items.schedulable')
+            ->latest()
+            ->first();
+
+        $schedule = $scheduleModel ? [
+            'id'    => $scheduleModel->id,
+            'name'  => $scheduleModel->name,
+            'items' => $scheduleModel->items->map(function ($item) {
+                $type = class_basename($item->schedulable_type);
+                $name = match ($type) {
+                    'SavedVerse' => $item->schedulable?->reference,
+                    default      => $item->schedulable?->title,
+                } ?? 'Unknown';
+                $icon = match ($type) {
+                    'Song'       => '🎵',
+                    'SavedVerse' => '📖',
+                    'MediaFile'  => '🎬',
+                    'SlideDeck'  => '📊',
+                    default      => '📄',
+                };
+
+                return [
+                    'id'   => $item->id,
+                    'type' => $type,
+                    'name' => $name,
+                    'icon' => $icon,
+                ];
+            }),
+        ] : null;
+
+        $themes = Theme::orderBy('is_system', 'desc')->orderBy('name')
+            ->get()
+            ->map(fn ($t) => [
+                'id'         => $t->id,
+                'name'       => $t->name,
+                'css_bg'     => $t->css_background,
+                'text_color' => $t->text_color,
+                'is_system'  => $t->is_system,
+            ]);
+
         return Inertia::render('Console/Index', [
             'songFolders' => $songFolders,
             'savedVerses' => $savedVerses,
             'mediaFiles'  => $mediaFiles,
             'slideDecks'  => $slideDecks,
+            'schedule'    => $schedule,
+            'themes'      => $themes,
         ]);
     }
 }
