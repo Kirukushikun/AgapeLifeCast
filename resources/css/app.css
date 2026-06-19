@@ -1438,3 +1438,441 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
     cursor: pointer; transition: background .15s;
 }
 .lc-tc-save-btn:hover { background: var(--lc-green-dark); }
+
+/* ── Modal ── */
+.lc-modal-backdrop {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,.55);
+    display: flex; align-items: center; justify-content: center;
+}
+.lc-modal {
+    background: var(--lc-bg-panel);
+    border: 1px solid var(--lc-border);
+    border-radius: 10px;
+    width: 360px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    font-family: 'Poppins', sans-serif;
+}
+.lc-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--lc-border);
+    font-size: .85rem; font-weight: 600; color: var(--lc-text);
+}
+.lc-modal-close {
+    background: none; border: none; cursor: pointer;
+    color: var(--lc-text-muted); font-size: .9rem;
+    padding: 2px 6px; border-radius: 4px; transition: background .12s;
+}
+.lc-modal-close:hover { background: var(--lc-bg-panel-alt); color: var(--lc-text); }
+.lc-modal-body { padding: 16px; display: flex; flex-direction: column; gap: 14px;}
+.lc-modal-label {
+    display: block; margin-bottom: 6px;
+    font-size: .75rem; font-weight: 500; color: var(--lc-text-muted);
+}
+.lc-modal-input {
+    width: 100%; padding: 8px 10px;
+    background: var(--lc-bg); border: 1px solid var(--lc-border);
+    border-radius: 6px; color: var(--lc-text);
+    font-family: 'Poppins', sans-serif; font-size: .82rem;
+    outline: none; transition: border-color .15s;
+    box-sizing: border-box;
+}
+.lc-modal-input:focus { border-color: var(--lc-green); }
+.lc-modal-input.error { border-color: #e53935; }
+.lc-modal-error {
+    display: block; margin-top: 5px;
+    font-size: .72rem; color: #e57373;
+}
+.lc-modal-footer {
+    display: flex; justify-content: flex-end; gap: 8px;
+    padding: 12px 16px 14px;
+    border-top: 1px solid var(--lc-border);
+}
+.lc-modal-btn {
+    padding: 7px 16px; border-radius: 6px; border: 1px solid var(--lc-border);
+    background: var(--lc-bg-panel-alt); color: var(--lc-text);
+    font-family: 'Poppins', sans-serif; font-size: .78rem; font-weight: 500;
+    cursor: pointer; transition: background .12s;
+}
+.lc-modal-btn:hover { background: var(--lc-border); }
+.lc-modal-btn.primary {
+    background: var(--lc-green); border-color: var(--lc-green); color: #fff;
+}
+.lc-modal-btn.primary:hover { background: var(--lc-green-dark); border-color: var(--lc-green-dark); }
+.lc-modal-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+/* ── Song Modal extras ── */
+.lc-modal-lg { width: 520px; }
+.lc-modal-scrollable { max-height: 60vh; overflow-y: auto; }
+
+.lc-form-row { margin-bottom: 12px; }
+.lc-form-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.lc-modal-select { color-scheme: dark; cursor: pointer; }
+
+.lc-slides-editor-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 16px 0 8px;
+    font-size: .75rem; font-weight: 600; color: var(--lc-text-muted);
+    text-transform: uppercase; letter-spacing: .05em;
+    border-top: 1px solid var(--lc-border); padding-top: 14px;
+}
+.lc-add-slide-btn {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 5px;
+    border: 1px solid var(--lc-green); color: var(--lc-green);
+    background: transparent; font-family: 'Poppins', sans-serif;
+    font-size: .72rem; font-weight: 500; cursor: pointer;
+    transition: background .12s;
+}
+.lc-add-slide-btn:hover { background: color-mix(in srgb, var(--lc-green) 12%, transparent); }
+
+.lc-slides-editor { display: flex; flex-direction: column; gap: 10px; }
+.lc-slide-edit-row {
+    background: var(--lc-bg);
+    border: 1px solid var(--lc-border);
+    border-radius: 6px; padding: 10px;
+}
+.lc-slide-edit-top {
+    display: flex; gap: 6px; align-items: center; margin-bottom: 7px;
+}
+.lc-slide-label-input { flex: 1; font-size: .78rem; }
+.lc-slide-remove-btn {
+    flex-shrink: 0; width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: 1px solid var(--lc-border);
+    border-radius: 5px; color: var(--lc-text-muted);
+    cursor: pointer; transition: all .12s;
+}
+.lc-slide-remove-btn:hover:not(:disabled) { border-color: #e53935; color: #e57373; }
+.lc-slide-remove-btn:disabled { opacity: .3; cursor: not-allowed; }
+.lc-slide-textarea { width: 100%; resize: vertical; min-height: 68px; box-sizing: border-box; font-size: .82rem; line-height: 1.5; }
+
+/* ── Song Modal — lyrics editor ── */
+.lc-modal-song { width: min(700px, 95vw); }
+
+.lc-tag-instruction {
+    font-size: .75rem; color: var(--lc-text-muted);
+    padding: 8px 11px; border-radius: 7px;
+    background: var(--lc-bg); border: 1px solid var(--lc-border);
+    line-height: 1.6; margin-bottom: 10px;
+}
+.lc-tag-instruction strong { color: var(--lc-text); }
+
+.lc-tag-buttons { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.lc-tag-btn {
+    padding: 5px 13px; border-radius: 6px; border: 1.5px solid;
+    font-family: 'Poppins', sans-serif; font-size: .74rem; font-weight: 600;
+    cursor: pointer; transition: all .15s;
+    opacity: .35; pointer-events: none;
+}
+.lc-tag-btn.ready { opacity: 1; pointer-events: auto; }
+.lc-tag-btn.ready:hover { filter: brightness(.92); transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,.25); }
+.lc-tag-btn-verse  { color: #8cc341; border-color: #8cc341; background: rgba(140,195,65,.1); }
+.lc-tag-btn-chorus { color: #e57373; border-color: #e53935; background: rgba(229,57,53,.08); }
+.lc-tag-btn-pre    { color: #90caf9; border-color: #1565c0; background: rgba(21,101,192,.08); }
+.lc-tag-btn-bridge { color: #ce93d8; border-color: #7b1fa2; background: rgba(123,31,162,.08); }
+.lc-tag-btn-tag    { color: #ffcc80; border-color: #e65100; background: rgba(230,81,0,.08); }
+.lc-tag-btn-outro  { color: #b0bec5; border-color: #546e7a; background: rgba(84,110,122,.08); }
+
+.lc-lyrics-editor {
+    min-height: 220px; max-height: 270px; overflow-y: auto;
+    padding: 12px 14px; border: 1px solid var(--lc-border); border-radius: 8px;
+    background: var(--lc-bg); color: var(--lc-text);
+    font-family: 'Poppins', sans-serif; font-size: .84rem; line-height: 1.85;
+    outline: none; white-space: pre-wrap; word-break: break-word;
+    transition: border-color .15s;
+    cursor: text;
+}
+.lc-lyrics-editor:focus { border-color: var(--lc-green); }
+.lc-lyrics-editor.error { border-color: #e53935; }
+.lc-lyrics-editor:empty::before {
+    content: attr(data-placeholder); color: var(--lc-text-muted); pointer-events: none;
+}
+
+/* Tagged section highlights */
+.lc-tagged-section { border-radius: 4px; padding: 0 2px; cursor: pointer; }
+.lc-tagged-verse   { background: rgba(140,195,65,.22); }
+.lc-tagged-chorus  { background: rgba(229,57,53,.15); }
+.lc-tagged-pre     { background: rgba(21,101,192,.14); }
+.lc-tagged-bridge  { background: rgba(123,31,162,.14); }
+.lc-tagged-tag     { background: rgba(230,81,0,.14); }
+.lc-tagged-outro   { background: rgba(84,110,122,.14); }
+
+/* Inline badges */
+.lc-inline-badge {
+    display: inline-block; font-size: .58rem; font-weight: 700; color: white;
+    border-radius: 3px; padding: 1px 4px; margin-right: 4px;
+    vertical-align: middle; line-height: 1.5; user-select: none;
+}
+.lc-ib-verse  { background: #8cc341; }
+.lc-ib-chorus { background: #e53935; }
+.lc-ib-pre    { background: #1565c0; }
+.lc-ib-bridge { background: #7b1fa2; }
+.lc-ib-tag    { background: #e65100; }
+.lc-ib-outro  { background: #546e7a; }
+
+/* Sections summary */
+.lc-sections-summary {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 10px;
+}
+.lc-section-chip {
+    display: flex; align-items: center; gap: 5px;
+    padding: 3px 10px 3px 6px; border-radius: 20px;
+    border: 1px solid var(--lc-border); background: var(--lc-bg);
+    font-size: .74rem; color: var(--lc-text-muted);
+}
+.lc-section-chip-badge {
+    font-size: .6rem; font-weight: 700; color: white;
+    padding: 1px 5px; border-radius: 3px;
+}
+
+/* ── Context Menu ── */
+.lc-ctx-menu {
+    position: fixed; z-index: 2000;
+    background: var(--lc-bg-panel);
+    border: 1px solid var(--lc-border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    padding: 4px;
+    min-width: 160px;
+    font-family: 'Poppins', sans-serif;
+}
+.lc-ctx-item {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 7px 10px; border-radius: 5px;
+    font-size: .78rem; font-weight: 500; cursor: pointer;
+    color: var(--lc-text); transition: background .12s;
+    user-select: none;
+}
+.lc-ctx-item:hover { background: var(--lc-bg-panel-alt); }
+.lc-ctx-danger { color: #e53935; }
+.lc-ctx-danger:hover { background: rgba(229,57,53,.08) !important; }
+.lc-ctx-sep { height: 1px; background: var(--lc-border); margin: 3px 4px; }
+.lc-ctx-sub-arrow { font-size: .65rem; color: var(--lc-text-muted); }
+
+.lc-ctx-submenu {
+    position: fixed; z-index: 2001;
+    background: var(--lc-bg-panel);
+    border: 1px solid var(--lc-border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    padding: 4px; min-width: 150px;
+    font-family: 'Poppins', sans-serif;
+}
+.lc-ctx-sub-item {
+    display: flex; align-items: center; gap: 7px;
+    padding: 7px 10px; border-radius: 5px;
+    font-size: .78rem; font-weight: 500; cursor: pointer;
+    color: var(--lc-text); transition: background .12s;
+    user-select: none;
+}
+.lc-ctx-sub-item:hover { background: var(--lc-bg-panel-alt); color: var(--lc-green); }
+
+/* ── Folder action buttons (hover-reveal) ── */
+.lc-folder-actions {
+    display: flex; gap: 2px; flex-shrink: 0;
+    opacity: 0; transition: opacity .15s;
+    margin-left: auto;
+}
+.lc-folder-row:hover .lc-folder-actions { opacity: 1; }
+
+.lc-folder-btn {
+    width: 22px; height: 22px; border-radius: 5px; border: none;
+    background: transparent; cursor: pointer;
+    color: var(--lc-text-muted);
+    display: flex; align-items: center; justify-content: center;
+    transition: background .1s, color .1s;
+}
+.lc-folder-btn:hover { background: var(--lc-border); color: var(--lc-text); }
+.lc-folder-btn.danger:hover { background: rgba(229,57,53,.12); color: #e53935; }
+
+/* ── Modal button variants ── */
+.lc-modal-btn.warning { background: #e65100; color: #fff; border-color: #e65100; }
+.lc-modal-btn.warning:hover { background: #bf360c; border-color: #bf360c; }
+.lc-modal-btn.danger  { background: #c62828; color: #fff; border-color: #c62828; }
+.lc-modal-btn.danger:hover  { background: #b71c1c; border-color: #b71c1c; }
+
+/* ── Folder Delete Modal ── */
+.lc-modal-delete { max-width: 420px; }
+.lc-delete-desc { margin: 0 0 16px; font-size: 13px; line-height: 1.5; color: var(--lc-text); }
+
+.lc-delete-options { display: flex; flex-direction: column; gap: 8px; }
+
+.lc-delete-option {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 12px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--lc-border);
+    transition: border-color .15s, background .15s;
+}
+.lc-delete-option:hover  { border-color: var(--lc-text-muted); background: var(--lc-hover); }
+.lc-delete-option.selected { border-color: #1976d2; background: rgba(25,118,210,.08); }
+.lc-delete-option.lc-do-danger.selected { border-color: #c62828; background: rgba(198,40,40,.08); }
+
+.lc-delete-option input[type="radio"] { margin-top: 2px; accent-color: #1976d2; flex-shrink: 0; }
+.lc-delete-option.lc-do-danger input[type="radio"] { accent-color: #c62828; }
+
+.lc-do-title { font-size: 13px; font-weight: 600; color: var(--lc-text); margin-bottom: 3px; }
+.lc-do-desc  { font-size: 11px; color: var(--lc-text-muted); line-height: 1.4; }
+
+
+.lc-ctx-sub-empty { color: var(--lc-text-muted); pointer-events: none; font-style: italic; }
+
+/* ── Custom Select ── */
+.lc-custom-select {
+    position: relative;
+    width: 100%;
+}
+
+.lc-cs-trigger {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 10px; border-radius: 6px; cursor: pointer;
+    background: var(--lc-input-bg); border: 1px solid var(--lc-border);
+    color: var(--lc-text); font-size: 13px; text-align: left;
+    white-space: nowrap; overflow: hidden;
+    transition: border-color .15s;
+}
+.lc-cs-trigger:focus { outline: none; border-color: #1976d2; }
+.lc-custom-select.error .lc-cs-trigger { border-color: #e53935; }
+
+.lc-cs-label {
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lc-cs-placeholder { color: var(--lc-text-muted); }
+.lc-cs-chevron { flex-shrink: 0; transition: transform .15s; color: var(--lc-text-muted); }
+.lc-cs-chevron.open { transform: rotate(180deg); }
+
+.lc-cs-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 1000;
+    background: var(--lc-bg-panel); border: 1px solid var(--lc-border);
+    border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    max-height: 200px; overflow-y: auto;
+}
+
+.lc-cs-option {
+    padding: 7px 10px; border-radius: 5px; cursor: pointer;
+    font-size: 13px; color: var(--lc-text);
+    transition: background .1s;
+}
+.lc-cs-option:hover   { background: var(--lc-hover); }
+.lc-cs-option.selected { background: rgba(25,118,210,.12); color: #1976d2; font-weight: 500; }
+
+/* ── Bible Modal ── */
+.lc-modal-bible { width: 620px; min-width: 320px;}
+
+.lc-bible-instruction {
+    font-size: 12px; color: var(--lc-text-muted); line-height: 1.5;
+    padding: 7px 11px; border-radius: 7px;
+    background: var(--lc-hover); border: 1px solid var(--lc-border);
+}
+.lc-bible-instruction strong { color: var(--lc-text); }
+
+.lc-bible-search-row {
+    display: flex; gap: 8px; align-items: center;
+}
+.lc-bible-version-wrap { flex: 0 0 210px; }
+.lc-bible-ref-input { flex: 1; width: auto !important; min-width: 0; }
+.lc-bible-search-btn {
+    flex-shrink: 0; white-space: nowrap;
+    padding: 8px 18px;
+}
+
+@keyframes lc-spin { to { transform: rotate(360deg); } }
+
+.lc-bible-preview {
+    min-height: 150px; border: 1px solid var(--lc-border); border-radius: 8px;
+    background: var(--lc-hover);
+    display: flex; align-items: center; justify-content: center;
+    padding: 22px; transition: border-color .2s;
+}
+.lc-bible-preview.has-result { align-items: flex-start; justify-content: flex-start; }
+
+.lc-bible-empty {
+    text-align: center; color: var(--lc-text-muted);
+}
+.lc-bible-empty .bp-icon { font-size: 2.2rem; display: block; margin-bottom: 8px; }
+.lc-bible-empty p { font-size: 13px; margin: 0; }
+
+.lc-bible-loading { font-size: 13px; color: var(--lc-text-muted); }
+.lc-bible-error   { font-size: 13px; color: #e53935; text-align: center; }
+
+.lc-bible-result { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.lc-bible-result-ref {
+    font-size: 11px; font-weight: 700; color: var(--lc-accent);
+    text-transform: uppercase; letter-spacing: 1px;
+}
+.lc-bible-result-text {
+    font-size: 14.9px; line-height: 1.85; color: var(--lc-text); font-style: italic;
+}
+/* Bible modal — manual entry */
+.lc-bible-manual-row {
+    display: flex; gap: 8px; align-items: stretch;
+}
+.lc-bible-testament-wrap {
+    display: flex; border: 1px solid var(--lc-border); border-radius: 6px; overflow: hidden; flex-shrink: 0;
+}
+.lc-testament-btn {
+    padding: 0 14px; font-size: 11px; font-weight: 600; letter-spacing: .5px;
+    background: transparent; color: var(--lc-text-muted);
+    border: none; cursor: pointer; transition: background .15s, color .15s;
+}
+.lc-testament-btn:first-child { border-right: 1px solid var(--lc-border); }
+.lc-testament-btn.active { background: var(--lc-accent); color: #fff; }
+.lc-bible-manual-textarea {
+    resize: vertical; min-height: 100px; font-size: 13px; line-height: 1.7;
+}
+
+.lc-verse-num {
+    font-size: 0.6em;
+    font-weight: 700;
+    vertical-align: super;
+    color: var(--lc-green);
+    margin-right: 2px;
+    user-select: none;
+    font-style: normal;
+}
+.lc-bible-result-meta {
+    font-size: 11px; color: var(--lc-text-muted);
+    padding-top: 6px; border-top: 1px solid var(--lc-border);
+}
+
+/* Empty state for Bible list */
+.lc-library-empty {
+    padding: 24px 16px; text-align: center;
+    font-size: 12px; color: var(--lc-text-muted);
+}
+
+/* ── Inline verse-folder creation row ── */
+.lc-folder-create-row {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px;
+}
+.lc-folder-create-input {
+    flex: 1; min-width: 0; padding: 5px 8px;
+    border: 1px solid var(--lc-border); border-radius: 5px;
+    background: var(--lc-bg); color: var(--lc-text);
+    font-family: 'Poppins', sans-serif; font-size: 12px;
+    outline: none; transition: border-color .15s;
+}
+.lc-folder-create-input:focus { border-color: var(--lc-green); }
+.lc-folder-create-btn {
+    padding: 4px 10px; border-radius: 5px; border: none;
+    background: var(--lc-green); color: #fff;
+    font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: background .15s; white-space: nowrap;
+}
+.lc-folder-create-btn:hover { background: var(--lc-green-dark); }
+.lc-folder-create-cancel {
+    padding: 4px 7px; border-radius: 5px;
+    border: 1px solid var(--lc-border); background: transparent;
+    color: var(--lc-text-muted); font-size: 11px; cursor: pointer;
+    transition: background .15s;
+}
+.lc-folder-create-cancel:hover { background: var(--lc-hover); }
+
+/* ── Bible modal field ── */
+.lc-modal-field {
+    display: flex; flex-direction: column; gap: 5px;
+}

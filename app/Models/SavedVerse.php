@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class SavedVerse extends Model
 {
-    protected $fillable = ['reference', 'translation', 'testament', 'content'];
+    protected $fillable = ['folder_id', 'reference', 'translation', 'testament', 'content'];
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Topbar from '@/components/Console/Topbar';
 import LibraryPanel from '@/components/Console/LibraryPanel';
 import PreviewArea from '@/components/Console/PreviewArea';
@@ -21,6 +22,13 @@ export interface SavedVerse {
     reference: string;
     translation: string;
     testament: 'old' | 'new';
+    content: string;
+}
+
+export interface VerseFolder {
+    id: number;
+    name: string;
+    verses: SavedVerse[];
 }
 
 export interface MediaFile {
@@ -72,12 +80,15 @@ export interface SelectedSong {
     id: number;
     title: string;
     author: string | null;
+    folder_id: number | null;
     slides: SlideData[];
     theme: { css_bg: string; text_color: string } | null;
 }
 
 interface Props {
     songFolders: SongFolder[];
+    uncategorizedSongs: SongItem[];
+    verseFolders: VerseFolder[];
     savedVerses: SavedVerse[];
     mediaFiles: MediaFile[];
     slideDecks: SlideDeck[];
@@ -86,19 +97,30 @@ interface Props {
     selectedSong: SelectedSong | null;
 }
 
-export default function Index({ songFolders, savedVerses, mediaFiles, slideDecks, schedule, themes, selectedSong }: Props) {
+export default function Index({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFiles, slideDecks, schedule, themes, selectedSong }: Props) {
+    const [selectedVerse, setSelectedVerse] = useState<SavedVerse | null>(null);
+
+    const handleVerseSelect = (verse: SavedVerse) => setSelectedVerse(verse);
+    const handleSongSelect  = () => setSelectedVerse(null);
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
             <Topbar />
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
                 <LibraryPanel
                     songFolders={songFolders}
+                    uncategorizedSongs={uncategorizedSongs}
+                    verseFolders={verseFolders}
                     savedVerses={savedVerses}
                     mediaFiles={mediaFiles}
                     slideDecks={slideDecks}
                     activeSongId={selectedSong?.id ?? null}
+                    activeVerseId={selectedVerse?.id ?? null}
+                    selectedSong={selectedSong}
+                    onVerseSelect={handleVerseSelect}
+                    onSongSelect={handleSongSelect}
                 />
-                <PreviewArea selectedSong={selectedSong} />
+                <PreviewArea selectedSong={selectedSong} selectedVerse={selectedVerse} />
                 <PropertiesPanel schedule={schedule} themes={themes} />
             </div>
         </div>

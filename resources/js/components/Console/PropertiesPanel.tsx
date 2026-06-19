@@ -25,6 +25,7 @@ export default function PropertiesPanel({ schedule, themes }: { schedule: Schedu
     const [textAlign, setTextAlign]             = useState<'left'|'center'|'right'>('left');
     const [textPos, setTextPos]                 = useState<'top'|'center'|'bottom'>('center');
     const [textColor, setTextColor]             = useState('#ffffff');
+    const [verseNumColor, setVerseNumColor]     = useState('#8cc341');
     const [activeTheme, setActiveTheme]         = useState(0);
     const [composerOpen, setComposerOpen]       = useState(false);
     const [composerType, setComposerType]       = useState<ComposerType>('solid');
@@ -166,6 +167,21 @@ export default function PropertiesPanel({ schedule, themes }: { schedule: Schedu
                                 style={{ background: c.value }}
                                 title={c.title}
                                 onClick={() => setTextColor(c.value)}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                <div className="lc-field-row">
+                    <label>Verse # Color</label>
+                    <div className="lc-color-swatch">
+                        {COLORS.map(c => (
+                            <div
+                                key={c.value}
+                                className={`lc-swatch${verseNumColor === c.value ? ' active' : ''}`}
+                                style={{ background: c.value }}
+                                title={c.title}
+                                onClick={() => setVerseNumColor(c.value)}
                             />
                         ))}
                     </div>

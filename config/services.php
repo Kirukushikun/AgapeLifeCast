@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'bible' => [
+        'api_key' => env('BIBLE_API_KEY'),
+        'niv_id'  => env('BIBLE_NIV_ID'),
+        'tcb_id'  => env('BIBLE_TCB_ID'),
+        'gnt_id'  => env('BIBLE_GNT_ID'),
+    ],
+
 ];
