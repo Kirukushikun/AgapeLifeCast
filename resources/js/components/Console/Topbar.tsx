@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 
 export default function Topbar() {
-    const [isDark, setIsDark] = useState(() =>
-        document.documentElement.classList.contains('dark')
-    );
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        setIsDark(document.documentElement.classList.contains('dark'));
+    }, []);
 
     useEffect(() => {
         document.documentElement.classList.toggle('dark', isDark);

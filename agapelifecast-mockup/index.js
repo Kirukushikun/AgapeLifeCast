@@ -153,7 +153,7 @@ document.getElementById('btn-blank').addEventListener('click', () => {
 isBlank = !isBlank;
 document.getElementById('screen-live').classList.toggle('is-blank', isBlank);
 liveCol.classList.toggle('on-air', !isBlank);
-document.getElementById('btn-blank').textContent = isBlank ? '■ Unblank Live' : '■ Blank Live';
+document.getElementById('btn-blank').textContent = isBlank ? '<i class="fa-solid fa-stop"></i> Unblank Live' : '<i class="fa-solid fa-stop"></i> Blank Live';
 });
 
 // ── SCHEDULE ──
@@ -594,7 +594,7 @@ track.value = smpState.duration ? (smpState.current / smpState.duration) * 100 :
 document.getElementById('smp-current').textContent  = formatTime(smpState.current);
 document.getElementById('smp-duration').textContent = formatTime(smpState.duration);
 
-const icon = smpState.playing ? '⏸' : '▶';
+const icon = smpState.playing ? '⏸' : '<i class="fa-solid fa-caret-right"></i>';
 playBtn.textContent  = icon;
 playIcon.textContent = icon;
 

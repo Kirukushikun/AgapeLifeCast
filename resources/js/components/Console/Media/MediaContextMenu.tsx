@@ -43,7 +43,7 @@ export default function MediaContextMenu({ x, y, file, currentFolderId, mediaFol
                     onMouseLeave={() => setShowMove(false)}
                 >
                     <span>Move to…</span>
-                    <span className="lc-ctx-arrow">▶</span>
+                    <span className="lc-ctx-arrow"><i class="fa-solid fa-caret-right"></i></span>
                     {showMove && (
                         <div className="lc-ctx-sub">
                             {moveFolderOptions.map(opt => (

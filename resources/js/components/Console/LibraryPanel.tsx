@@ -55,7 +55,7 @@ function mediaIconClass(type: MediaFile['type']) {
     return 'lc-icon-image';
 }
 
-export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDecks, activeSongId, activeVerseId, selectedSong, onVerseSelect, onSongSelect }: { songFolders: SongFolder[]; uncategorizedSongs: SongItem[]; verseFolders: VerseFolder[]; savedVerses: SavedVerse[]; mediaFolders: MediaFolder[]; uncategorizedMedia: MediaFile[]; slideDecks: SlideDeck[]; activeSongId: number | null; activeVerseId: number | null; selectedSong: SelectedSong | null; onVerseSelect: (verse: SavedVerse) => void; onSongSelect: () => void }) {
+export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDecks, activeSongId, activeVerseId, selectedSong, onVerseSelect, onSongSelect, volume, onHasAudioChange, onMediaLive, liveMedia }: { songFolders: SongFolder[]; uncategorizedSongs: SongItem[]; verseFolders: VerseFolder[]; savedVerses: SavedVerse[]; mediaFolders: MediaFolder[]; uncategorizedMedia: MediaFile[]; slideDecks: SlideDeck[]; activeSongId: number | null; activeVerseId: number | null; selectedSong: SelectedSong | null; onVerseSelect: (verse: SavedVerse) => void; onSongSelect: () => void; volume: number; onHasAudioChange: (v: boolean) => void; onMediaLive: (file: MediaFile | null, startTime?: number) => void; liveMedia: MediaFile | null }) {
 
     const selectSong = (id: number) => {
         onSongSelect();
@@ -93,12 +93,16 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
     const mediaFolderForm = useForm({ name: '' });
 
     // ── Media player state ──
-    const videoRef    = useRef<HTMLVideoElement>(null);
-    const audioRef    = useRef<HTMLAudioElement>(null);
+    const videoRef       = useRef<HTMLVideoElement>(null);
+    const audioRef       = useRef<HTMLAudioElement>(null);
+    const scrubRef       = useRef<HTMLInputElement>(null);
+    const isScrubbingRef = useRef(false);
     const [isPlaying, setIsPlaying]     = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration]       = useState(0);
-    const [mediaOnLive, setMediaOnLive] = useState(false);
+
+    // Derived — true only when the item currently in the SMP is also on the live screen
+    const isCurrentMediaLive = !!selectedMedia && selectedMedia.id === liveMedia?.id;
 
     // ── Layout state ──
     const [activeTab, setActiveTab]     = useState<Tab>('songs');
@@ -194,12 +198,68 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
         setIsPlaying(false);
         setCurrentTime(0);
         setDuration(0);
+        if (scrubRef.current) scrubRef.current.value = '0';
+        onHasAudioChange(!!selectedMedia && selectedMedia.type !== 'image');
+    }, [selectedMedia?.id]);
+
+    // Native scrubber — bypasses React's synthetic event system so dragging
+    // while playing doesn't fight React re-renders.
+    useEffect(() => {
+        const el = scrubRef.current;
+        if (!el) return;
+
+        const onInput  = () => {
+            const t = parseFloat(el.value);
+            const media = videoRef.current ?? audioRef.current;
+            if (media) media.currentTime = t;
+            setCurrentTime(t);
+        };
+        const onStart  = () => { isScrubbingRef.current = true; };
+        const onEnd    = () => { isScrubbingRef.current = false; };
+
+        el.addEventListener('input', onInput);
+        el.addEventListener('mousedown', onStart);
+        el.addEventListener('touchstart', onStart, { passive: true });
+        document.addEventListener('mouseup', onEnd);
+        document.addEventListener('touchend', onEnd);
+
+        return () => {
+            el.removeEventListener('input', onInput);
+            el.removeEventListener('mousedown', onStart);
+            el.removeEventListener('touchstart', onStart);
+            document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('touchend', onEnd);
+        };
     }, [selectedMedia?.id]);
 
     const handleMediaSelect = (file: MediaFile) => {
         setSelectedMedia(file);
         setSmpExpanded(true);
-        setMediaOnLive(false);
+        // Browsing does NOT touch the live output — only explicit Send/Remove does
+    };
+
+    const handleToggleLive = () => {
+        if (!selectedMedia || selectedMedia.type === 'audio') return;
+
+        if (isCurrentMediaLive) {
+            // Remove from live; pause SMP if it was providing audio for the live video
+            onMediaLive(null);
+            if (selectedMedia.type === 'video') {
+                videoRef.current?.pause();
+                setIsPlaying(false);
+            }
+        } else {
+            // Send to live — capture current SMP position so live video starts in sync
+            const startTime = selectedMedia.type === 'video'
+                ? (videoRef.current?.currentTime ?? 0)
+                : 0;
+            onMediaLive(selectedMedia, startTime);
+            // Auto-play SMP so it becomes the audio source for the live video
+            if (selectedMedia.type === 'video') {
+                videoRef.current?.play().catch(() => {});
+                setIsPlaying(true);
+            }
+        }
     };
 
     const getMediaEl = () =>
@@ -217,22 +277,35 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
         }
     };
 
-    const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const t = parseFloat(e.target.value);
-        const el = getMediaEl();
-        if (el) el.currentTime = t;
-        setCurrentTime(t);
+
+    const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement | HTMLAudioElement>) => {
+        const t = e.currentTarget.currentTime;
+        if (!isScrubbingRef.current) {
+            setCurrentTime(t);
+            if (scrubRef.current) scrubRef.current.value = String(t);
+        }
+        if (duration === 0) {
+            const d = e.currentTarget.duration;
+            if (isFinite(d) && d > 0) setDuration(d);
+        }
     };
 
-    const handleTimeUpdate = () => {
-        const el = getMediaEl();
-        if (el) setCurrentTime(el.currentTime);
+    const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement | HTMLAudioElement>) => {
+        const d = e.currentTarget.duration;
+        if (isFinite(d) && d > 0) setDuration(d);
+        e.currentTarget.volume = volume;
     };
 
-    const handleLoadedMetadata = () => {
-        const el = getMediaEl();
-        if (el && isFinite(el.duration)) setDuration(el.duration);
-    };
+    useEffect(() => {
+        if (videoRef.current) videoRef.current.volume = volume;
+        if (audioRef.current) audioRef.current.volume = volume;
+    }, [volume]);
+
+    // Mute SMP video when the live screen is handling that video's audio,
+    // unmute it when just previewing so the operator can still monitor
+    useEffect(() => {
+        if (videoRef.current) videoRef.current.muted = isCurrentMediaLive;
+    }, [isCurrentMediaLive]);
 
     const handleEnded = () => setIsPlaying(false);
 
@@ -545,6 +618,7 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
                                 ref={videoRef}
                                 src={selectedMedia.url}
                                 className="lc-smp-video"
+                                preload="metadata"
                                 onTimeUpdate={handleTimeUpdate}
                                 onLoadedMetadata={handleLoadedMetadata}
                                 onEnded={handleEnded}
@@ -559,13 +633,14 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
                                 <audio
                                     ref={audioRef}
                                     src={selectedMedia.url}
+                                    preload="metadata"
                                     onTimeUpdate={handleTimeUpdate}
                                     onLoadedMetadata={handleLoadedMetadata}
                                     onEnded={handleEnded}
                                 />
                             </>
                         )}
-                        {mediaOnLive && <div className="lc-smp-live-bar">● LIVE</div>}
+                        {isCurrentMediaLive && <div className="lc-smp-live-bar">● LIVE</div>}
                     </div>
 
                     {/* File info (not shown for audio since audio bg already shows title) */}
@@ -581,13 +656,13 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
                         <div className="lc-smp-scrubber">
                             <span className="lc-smp-time">{formatTime(currentTime)}</span>
                             <input
+                                ref={scrubRef}
                                 type="range"
                                 className="lc-smp-range"
                                 min={0}
                                 max={duration || 1}
-                                step={0.5}
-                                value={currentTime}
-                                onChange={handleScrub}
+                                step={0.01}
+                                defaultValue={0}
                             />
                             <span className="lc-smp-time">{formatTime(duration)}</span>
                         </div>
@@ -616,11 +691,11 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
                         )}
                         <div className="lc-smp-spacer" />
                         <button
-                            className={`lc-smp-send-btn${mediaOnLive ? ' active' : ''}`}
-                            onClick={() => setMediaOnLive(v => !v)}
-                            disabled={!selectedMedia}
+                            className={`lc-smp-send-btn${isCurrentMediaLive ? ' active' : ''}`}
+                            onClick={handleToggleLive}
+                            disabled={!selectedMedia || selectedMedia.type === 'audio'}
                         >
-                            {mediaOnLive ? 'On Live' : 'Send Live'}
+                            {isCurrentMediaLive ? 'On Live' : 'Send Live'}
                         </button>
                     </div>
 

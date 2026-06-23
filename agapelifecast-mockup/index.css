@@ -273,7 +273,7 @@ body.dark .toggle-thumb {
     flex-shrink: 0;
     transition: transform .2s cubic-bezier(.4,0,.2,1);
 }
-/* expanded = ▼, collapsed = ▼ rotated -90° = ▶ */
+/* expanded = ▼, collapsed = ▼ rotated -90° = <i class="fa-solid fa-caret-right"></i> */
 .library-folder.collapsed .folder-chevron { transform: rotate(-90deg); }
 
 .folder-icon { font-size: .85rem; flex-shrink: 0; }

@@ -109,7 +109,16 @@ interface Props {
 }
 
 export default function Index({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDecks, schedule, themes, selectedSong }: Props) {
-    const [selectedVerse, setSelectedVerse] = useState<SavedVerse | null>(null);
+    const [selectedVerse, setSelectedVerse]       = useState<SavedVerse | null>(null);
+    const [volume, setVolume]                     = useState(0.8);
+    const [hasActiveAudio, setHasActiveAudio]     = useState(false);
+    const [liveMedia, setLiveMedia]               = useState<MediaFile | null>(null);
+    const [liveMediaStartTime, setLiveMediaStartTime] = useState(0);
+
+    const handleMediaLive = (file: MediaFile | null, startTime = 0) => {
+        setLiveMedia(file);
+        setLiveMediaStartTime(file ? startTime : 0);
+    };
 
     const handleVerseSelect = (verse: SavedVerse) => setSelectedVerse(verse);
     const handleSongSelect  = () => setSelectedVerse(null);
@@ -131,8 +140,20 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
                     selectedSong={selectedSong}
                     onVerseSelect={handleVerseSelect}
                     onSongSelect={handleSongSelect}
+                    volume={volume}
+                    onHasAudioChange={setHasActiveAudio}
+                    onMediaLive={handleMediaLive}
+                    liveMedia={liveMedia}
                 />
-                <PreviewArea selectedSong={selectedSong} selectedVerse={selectedVerse} />
+                <PreviewArea
+                    selectedSong={selectedSong}
+                    selectedVerse={selectedVerse}
+                    volume={volume}
+                    onVolumeChange={setVolume}
+                    hasActiveAudio={hasActiveAudio}
+                    liveMedia={liveMedia}
+                    liveMediaStartTime={liveMediaStartTime}
+                />
                 <PropertiesPanel schedule={schedule} themes={themes} />
             </div>
         </div>

@@ -285,7 +285,7 @@
       flex-shrink: 0;
       transition: transform .2s cubic-bezier(.4,0,.2,1);
     }
-    /* expanded = ▼, collapsed = ▼ rotated -90° = ▶ */
+    /* expanded = ▼, collapsed = ▼ rotated -90° = <i class="fa-solid fa-caret-right"></i> */
     .library-folder.collapsed .folder-chevron { transform: rotate(-90deg); }
 
     .folder-icon { font-size: .85rem; flex-shrink: 0; }
@@ -2187,11 +2187,11 @@
           </div>
 
           <div class="preview-controls-center">
-            <button id="btn-prev">◀ Prev</button>
-            <button id="btn-next">Next ▶</button>
+            <button id="btn-prev"><i class="fa-solid fa-caret-left"></i> Prev</button>
+            <button id="btn-next">Next <i class="fa-solid fa-caret-right"></i></button>
             <div class="divider"></div>
-            <button class="btn-blank" id="btn-blank">■ Blank Live</button>
-            <button class="btn-live" id="btn-send-live">▶ Send to Live</button>
+            <button class="btn-blank" id="btn-blank"><i class="fa-solid fa-stop"></i> Blank Live</button>
+            <button class="btn-live" id="btn-send-live"><i class="fa-solid fa-play"></i> Send to Live</button>
           </div>
 
           <div class="preview-controls-right">
@@ -2708,7 +2708,7 @@
     isBlank = !isBlank;
     document.getElementById('screen-live').classList.toggle('is-blank', isBlank);
     liveCol.classList.toggle('on-air', !isBlank);
-    document.getElementById('btn-blank').textContent = isBlank ? '■ Unblank Live' : '■ Blank Live';
+    document.getElementById('btn-blank').textContent = isBlank ? '<i class="fa-solid fa-stop"></i> Unblank Live' : '<i class="fa-solid fa-stop"></i> Blank Live';
   });
 
   // ── SCHEDULE ──
@@ -3313,7 +3313,7 @@
     document.getElementById('smp-current').textContent  = formatTime(smpState.current);
     document.getElementById('smp-duration').textContent = formatTime(smpState.duration);
 
-    const icon = smpState.playing ? '⏸' : '▶';
+    const icon = smpState.playing ? '⏸' : '<i class="fa-solid fa-caret-right"></i>';
     playBtn.textContent  = icon;
     playIcon.textContent = icon;
 

@@ -1,5 +1,11 @@
-import { useState, useEffect } from 'react';
-import type { SelectedSong, SavedVerse } from '@/pages/Console/Index';
+import { useState, useEffect, useRef } from 'react';
+import type { SelectedSong, SavedVerse, MediaFile } from '@/pages/Console/Index';
+
+// What is currently frozen on the Live screen — only changes on explicit "Send to Live"
+type LiveSnapshot =
+    | { kind: 'slide'; song: SelectedSong; slideIdx: number }
+    | { kind: 'verse'; verse: SavedVerse }
+    | null;
 
 interface SlideCanvasProps {
     label: string | null;
@@ -29,38 +35,129 @@ function SlideCanvas({ label, text, blank = false, songTitle, theme }: SlideCanv
     );
 }
 
-export default function PreviewArea({ selectedSong, selectedVerse }: { selectedSong: SelectedSong | null; selectedVerse: SavedVerse | null }) {
+function MediaScreen({ file, startTime = 0, volume = 1 }: { file: MediaFile; startTime?: number; volume?: number }) {
+    const liveVideoRef = useRef<HTMLVideoElement>(null);
+
+    useEffect(() => {
+        const video = liveVideoRef.current;
+        if (!video) return;
+
+        const start = async () => {
+            // Start muted — guarantees autoplay permission in all browsers
+            video.muted = true;
+            if (startTime > 0) video.currentTime = startTime;
+            try {
+                await video.play();
+                // Play succeeded; now unmute so the live screen handles audio
+                video.muted = false;
+                video.volume = volume;
+            } catch {
+                // Autoplay blocked entirely — video stays silent but visible
+            }
+        };
+
+        if (video.readyState >= 1) {
+            start();
+        } else {
+            video.addEventListener('loadedmetadata', start, { once: true });
+            return () => video.removeEventListener('loadedmetadata', start);
+        }
+    }, [file.id]);
+
+    // Volume changes after initial mount
+    useEffect(() => {
+        const video = liveVideoRef.current;
+        if (video && !video.muted) video.volume = volume;
+    }, [volume]);
+
+    return (
+        <div className="lc-preview-screen lc-media-screen">
+            {/* Ambient: blurred fill, always loops silently */}
+            {file.type === 'image' && (
+                <img src={file.url} aria-hidden className="lc-media-ambient" />
+            )}
+            {file.type === 'video' && (
+                <video src={file.url} aria-hidden className="lc-media-ambient" autoPlay muted loop playsInline />
+            )}
+            {/* 16:9 content box */}
+            <div className="lc-media-slide">
+                {file.type === 'image' && (
+                    <img src={file.url} alt={file.title} className="lc-media-img" />
+                )}
+                {file.type === 'video' && (
+                    <video
+                        ref={liveVideoRef}
+                        src={file.url}
+                        className="lc-media-video"
+                        muted
+                        loop={file.is_looping}
+                        playsInline
+                    />
+                )}
+            </div>
+        </div>
+    );
+}
+
+function renderLiveScreen(snapshot: LiveSnapshot, liveMedia: MediaFile | null, isBlank: boolean, liveMediaStartTime: number, volume: number) {
+    if (liveMedia) return <MediaScreen file={liveMedia} startTime={liveMediaStartTime} volume={volume} />;
+    if (!snapshot)  return <div className="lc-preview-screen is-blank" />;
+
+    if (snapshot.kind === 'verse') {
+        const { verse } = snapshot;
+        return <SlideCanvas label={verse.reference} text={verse.content} blank={isBlank} songTitle={verse.translation} theme={null} />;
+    }
+
+    const slide = snapshot.song.slides[snapshot.slideIdx];
+    if (!slide) return <div className="lc-preview-screen is-blank" />;
+    return <SlideCanvas label={slide.label} text={slide.content} blank={isBlank} songTitle={snapshot.song.title} theme={snapshot.song.theme} />;
+}
+
+export default function PreviewArea({ selectedSong, selectedVerse, volume, onVolumeChange, hasActiveAudio, liveMedia, liveMediaStartTime }: {
+    selectedSong: SelectedSong | null;
+    selectedVerse: SavedVerse | null;
+    volume: number;
+    onVolumeChange: (v: number) => void;
+    hasActiveAudio: boolean;
+    liveMedia: MediaFile | null;
+    liveMediaStartTime: number;
+}) {
     const slides = selectedSong?.slides ?? [];
 
-    const [activeThumb, setActiveThumb] = useState(0);
-    const [previewIdx, setPreviewIdx]   = useState(0);
-    const [liveIdx, setLiveIdx]         = useState(0);
-    const [liveClick, setLiveClick]     = useState(false);
-    const [isBlank, setIsBlank]         = useState(false);
-    const [isOnAir, setIsOnAir]         = useState(false);
+    const [activeThumb, setActiveThumb]     = useState(0);
+    const [previewIdx, setPreviewIdx]       = useState(0);
+    const [liveSnapshot, setLiveSnapshot]   = useState<LiveSnapshot>(null);
+    const [liveClick, setLiveClick]         = useState(false);
+    const [isBlank, setIsBlank]             = useState(false);
 
+    const isOnAir = !!liveMedia || !!liveSnapshot;
+
+    // Reset ONLY the preview when the selection changes — Live stays frozen
     useEffect(() => {
         setActiveThumb(0);
         setPreviewIdx(0);
-        setLiveIdx(0);
-        setIsBlank(false);
     }, [selectedSong?.id, selectedVerse?.id]);
+
+    const sendLive = (snapshot: LiveSnapshot) => {
+        setLiveSnapshot(snapshot);
+        setIsBlank(false);
+    };
 
     const handleThumbClick = (idx: number) => {
         setActiveThumb(idx);
-        if (liveClick) {
-            setLiveIdx(idx);
-            setIsOnAir(true);
-            setIsBlank(false);
+        if (liveClick && selectedSong) {
+            sendLive({ kind: 'slide', song: selectedSong, slideIdx: idx });
         } else {
             setPreviewIdx(idx);
         }
     };
 
     const handleSendLive = () => {
-        setLiveIdx(previewIdx);
-        setIsOnAir(true);
-        setIsBlank(false);
+        if (selectedVerse) {
+            sendLive({ kind: 'verse', verse: selectedVerse });
+        } else if (selectedSong && slides[previewIdx]) {
+            sendLive({ kind: 'slide', song: selectedSong, slideIdx: previewIdx });
+        }
     };
 
     const handlePrev = () => {
@@ -75,110 +172,64 @@ export default function PreviewArea({ selectedSong, selectedVerse }: { selectedS
         setActiveThumb(next);
     };
 
-    // ── Verse mode ──
-    if (selectedVerse) {
-        const verseText  = selectedVerse.content;
-        const verseLabel = selectedVerse.reference;
-        const verseMeta  = selectedVerse.translation;
+    // ── Preview screen (follows current selection) ──
+    const previewSlide = slides[previewIdx];
+    const songTitle    = selectedSong?.title ?? '';
+    const theme        = selectedSong?.theme ?? null;
+    const verseText    = selectedVerse?.content ?? '';
+    const verseLabel   = selectedVerse?.reference ?? '';
+    const verseMeta    = selectedVerse?.translation ?? '';
 
-        return (
-            <div className="lc-preview-area">
-                <div className="lc-slide-list">
-                    <div>
-                        <div className="lc-slide-thumb active">
-                            <span>{verseLabel}</span>
-                        </div>
-                        <div className="lc-slide-label">Verse</div>
-                    </div>
-                </div>
+    const previewScreen = selectedVerse
+        ? <SlideCanvas label={verseLabel} text={verseText} songTitle={verseMeta} theme={null} />
+        : previewSlide
+            ? <SlideCanvas label={previewSlide.label} text={previewSlide.content} songTitle={songTitle} theme={theme} />
+            : <div className="lc-preview-screen is-blank" />;
 
-                <div className="lc-preview-main">
-                    <div className={`lc-dual-screens${liveClick ? ' live-click-mode' : ''}`}>
-
-                        <div className="lc-screen-col lc-col-preview">
-                            <div className="lc-screen-label">
-                                <span className="lc-label-text">Preview</span>
-                                <span className="lc-label-badge">Staged</span>
-                            </div>
-                            <SlideCanvas label={verseLabel} text={verseText} songTitle={verseMeta} theme={null} />
-                        </div>
-
-                        <div className={`lc-screen-col lc-col-live${isOnAir ? ' on-air' : ''}`}>
-                            <div className="lc-screen-label">
-                                <span className="lc-label-text">Live</span>
-                                <span className="lc-label-badge">
-                                    <span className="lc-pulse-dot" />
-                                    {isOnAir ? 'ON AIR' : 'OFFLINE'}
-                                </span>
-                            </div>
-                            <SlideCanvas label={verseLabel} text={verseText} blank={isBlank} songTitle={verseMeta} theme={null} />
-                        </div>
-
-                    </div>
-
-                    <div className="lc-preview-controls">
-                        <div className="lc-ctrl-left">
-                            <label
-                                className={`lc-live-click-wrap${liveClick ? ' active' : ''}`}
-                                onClick={() => setLiveClick(v => !v)}
-                            >
-                                <div className="lc-mini-track"><div className="lc-mini-thumb" /></div>
-                                <span className="lc-live-click-label">Live Click</span>
-                            </label>
-                        </div>
-                        <div className="lc-ctrl-center">
-                            <button className="lc-ctrl-btn" disabled>◀ Prev</button>
-                            <button className="lc-ctrl-btn" disabled>Next ▶</button>
-                            <div className="lc-ctrl-divider" />
-                            <button className="lc-ctrl-btn btn-blank" onClick={() => setIsBlank(v => !v)}>
-                                ■ {isBlank ? 'Unblank' : 'Blank Live'}
-                            </button>
-                            <button className="lc-ctrl-btn btn-live" onClick={handleSendLive}>
-                                ▶ Send to Live
-                            </button>
-                        </div>
-                        <div className="lc-ctrl-right" />
-                    </div>
-                </div>
+    // ── Slide list ──
+    const slideList = selectedVerse ? (
+        <div>
+            <div className="lc-slide-thumb active"><span>{verseLabel}</span></div>
+            <div className="lc-slide-label">Verse</div>
+        </div>
+    ) : slides.map((slide, idx) => (
+        <div key={slide.id}>
+            <div
+                className={`lc-slide-thumb${activeThumb === idx ? ' active' : ''}`}
+                onClick={() => handleThumbClick(idx)}
+            >
+                <span>{slide.content.split('\n').map((line, i, arr) => (
+                    <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+                ))}</span>
             </div>
-        );
-    }
+            <div className="lc-slide-label">{slide.label}</div>
+        </div>
+    ));
 
     // ── Empty state ──
-    if (slides.length === 0) {
+    if (!selectedVerse && slides.length === 0 && !liveMedia && !liveSnapshot) {
         return (
             <div className="lc-preview-area" style={{ alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ color: 'var(--lc-text-muted)', fontSize: '.85rem', fontFamily: 'Poppins, sans-serif' }}>
-                    Select a song or verse from the library to preview.
+                    Select a song, verse, or media from the library to preview.
                 </span>
             </div>
         );
     }
 
-    // ── Song mode ──
-    const previewSlide = slides[previewIdx];
-    const liveSlide    = slides[liveIdx];
-    const songTitle    = selectedSong?.title ?? '';
-    const theme        = selectedSong?.theme ?? null;
+    const prevDisabled = !selectedSong || previewIdx === 0;
+    const nextDisabled = !selectedSong || previewIdx === slides.length - 1;
+
+    const showSlideList = selectedVerse !== null || slides.length > 0;
 
     return (
         <div className="lc-preview-area">
 
-            <div className="lc-slide-list">
-                {slides.map((slide, idx) => (
-                    <div key={slide.id}>
-                        <div
-                            className={`lc-slide-thumb${activeThumb === idx ? ' active' : ''}`}
-                            onClick={() => handleThumbClick(idx)}
-                        >
-                            <span>{slide.content.split('\n').map((line, i, arr) => (
-                                <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
-                            ))}</span>
-                        </div>
-                        <div className="lc-slide-label">{slide.label}</div>
-                    </div>
-                ))}
-            </div>
+            {showSlideList && (
+                <div className="lc-slide-list">
+                    {slideList}
+                </div>
+            )}
 
             <div className="lc-preview-main">
 
@@ -189,9 +240,7 @@ export default function PreviewArea({ selectedSong, selectedVerse }: { selectedS
                             <span className="lc-label-text">Preview</span>
                             <span className="lc-label-badge">Staged</span>
                         </div>
-                        {previewSlide && (
-                            <SlideCanvas label={previewSlide.label} text={previewSlide.content} songTitle={songTitle} theme={theme} />
-                        )}
+                        {previewScreen}
                     </div>
 
                     <div className={`lc-screen-col lc-col-live${isOnAir ? ' on-air' : ''}`}>
@@ -202,9 +251,7 @@ export default function PreviewArea({ selectedSong, selectedVerse }: { selectedS
                                 {isOnAir ? 'ON AIR' : 'OFFLINE'}
                             </span>
                         </div>
-                        {liveSlide && (
-                            <SlideCanvas label={liveSlide.label} text={liveSlide.content} blank={isBlank} songTitle={songTitle} theme={theme} />
-                        )}
+                        {renderLiveScreen(liveSnapshot, liveMedia, isBlank, liveMediaStartTime, volume)}
                     </div>
 
                 </div>
@@ -221,17 +268,31 @@ export default function PreviewArea({ selectedSong, selectedVerse }: { selectedS
                         </label>
                     </div>
                     <div className="lc-ctrl-center">
-                        <button className="lc-ctrl-btn" onClick={handlePrev} disabled={previewIdx === 0}>◀ Prev</button>
-                        <button className="lc-ctrl-btn" onClick={handleNext} disabled={previewIdx === slides.length - 1}>Next ▶</button>
+                        <button className="lc-ctrl-btn" onClick={handlePrev} disabled={prevDisabled}><i className="fa-solid fa-caret-left"></i> Prev</button>
+                        <button className="lc-ctrl-btn" onClick={handleNext} disabled={nextDisabled}>Next <i className="fa-solid fa-caret-right"></i></button>
                         <div className="lc-ctrl-divider" />
                         <button className="lc-ctrl-btn btn-blank" onClick={() => setIsBlank(v => !v)}>
-                            ■ {isBlank ? 'Unblank' : 'Blank Live'}
+                            <i className="fa-solid fa-stop"></i> {isBlank ? 'Unblank' : 'Blank Live'}
                         </button>
                         <button className="lc-ctrl-btn btn-live" onClick={handleSendLive}>
-                            ▶ Send to Live
+                            <i className="fa-solid fa-play"></i> Send to Live
                         </button>
                     </div>
-                    <div className="lc-ctrl-right" />
+                    <div className="lc-ctrl-right">
+                        <div className={`lc-vol-ctrl${hasActiveAudio ? '' : ' disabled'}`}>
+                            <i className="fa-solid fa-volume-low"></i>
+                            <input
+                                type="range"
+                                className="lc-vol-slider"
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                value={volume}
+                                disabled={!hasActiveAudio}
+                                onChange={e => onVolumeChange(parseFloat(e.target.value))}
+                            />
+                        </div>
+                    </div>
                 </div>
 
             </div>
