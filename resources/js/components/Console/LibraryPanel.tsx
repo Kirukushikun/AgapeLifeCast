@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-    Music, BookOpen, Film, Image, Headphones, FileText, Presentation,
+    Music, BookOpen, Film, Image, Headphones, FileText,
     FolderPlus, Upload, Plus, ChevronDown, SkipBack, SkipForward, Play, Pause,
     Pencil, Trash2,
 } from 'lucide-react';
@@ -17,8 +17,12 @@ import MediaFolderDeleteModal from '@/components/Console/Media/MediaFolderDelete
 import MediaDeleteModal from '@/components/Console/Media/MediaDeleteModal';
 import MediaContextMenu from '@/components/Console/Media/MediaContextMenu';
 import MediaUploadModal from '@/components/Console/Media/MediaUploadModal';
+import SlideImportModal from '@/components/Console/Slides/SlideImportModal';
+import SlideDeckContextMenu from '@/components/Console/Slides/SlideDeckContextMenu';
+import SlideDeckFolderDeleteModal from '@/components/Console/Slides/SlideDeckFolderDeleteModal';
+import SlideDeckDeleteModal from '@/components/Console/Slides/SlideDeckDeleteModal';
 import type { EditSongData } from '@/components/Console/Songs/SongModal';
-import type { SongFolder, VerseFolder, SavedVerse, MediaFile, MediaFolder, SlideDeck, SongItem, SelectedSong } from '@/pages/Console/Index';
+import type { SongFolder, VerseFolder, SavedVerse, MediaFile, MediaFolder, SlideDeck, SlideDeckFolder, SongItem, SelectedSong } from '@/pages/Console/Index';
 
 type Tab = 'songs' | 'bible' | 'media' | 'slides';
 
@@ -55,7 +59,7 @@ function mediaIconClass(type: MediaFile['type']) {
     return 'lc-icon-image';
 }
 
-export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDecks, activeSongId, activeVerseId, selectedSong, onVerseSelect, onSongSelect, volume, onHasAudioChange, onMediaLive, liveMedia }: { songFolders: SongFolder[]; uncategorizedSongs: SongItem[]; verseFolders: VerseFolder[]; savedVerses: SavedVerse[]; mediaFolders: MediaFolder[]; uncategorizedMedia: MediaFile[]; slideDecks: SlideDeck[]; activeSongId: number | null; activeVerseId: number | null; selectedSong: SelectedSong | null; onVerseSelect: (verse: SavedVerse) => void; onSongSelect: () => void; volume: number; onHasAudioChange: (v: boolean) => void; onMediaLive: (file: MediaFile | null, startTime?: number) => void; liveMedia: MediaFile | null }) {
+export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDeckFolders, uncategorizedDecks, activeSongId, activeVerseId, activeDeckId, selectedSong, onVerseSelect, onSongSelect, onDeckSelect, volume, onHasAudioChange, onMediaLive, liveMedia }: { songFolders: SongFolder[]; uncategorizedSongs: SongItem[]; verseFolders: VerseFolder[]; savedVerses: SavedVerse[]; mediaFolders: MediaFolder[]; uncategorizedMedia: MediaFile[]; slideDeckFolders: SlideDeckFolder[]; uncategorizedDecks: SlideDeck[]; activeSongId: number | null; activeVerseId: number | null; activeDeckId: number | null; selectedSong: SelectedSong | null; onVerseSelect: (verse: SavedVerse) => void; onSongSelect: () => void; onDeckSelect: (deck: SlideDeck | null) => void; volume: number; onHasAudioChange: (v: boolean) => void; onMediaLive: (file: MediaFile | null) => void; liveMedia: MediaFile | null }) {
 
     const selectSong = (id: number) => {
         onSongSelect();
@@ -82,6 +86,32 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
     const [collapsedVerseFolders, setCollapsedVerseFolders] = useState<Set<number>>(new Set());
     const verseFolderForm = useForm({ name: '' });
 
+    // ── Slides state ──
+    const [slideImportModal, setSlideImportModal]                   = useState(false);
+    const [deckCtx, setDeckCtx]                                     = useState<{ x: number; y: number; deck: SlideDeck; folderId: number | null } | null>(null);
+    const [deckToDelete, setDeckToDelete]                           = useState<SlideDeck | null>(null);
+    const [slideFolderModal, setSlideFolderModal]                   = useState<{ mode: 'create' } | { mode: 'rename'; id: number } | null>(null);
+    const [slideFolderToDelete, setSlideFolderToDelete]             = useState<SlideDeckFolder | null>(null);
+    const [collapsedSlideFolders, setCollapsedSlideFolders]         = useState<Set<number>>(new Set());
+    const slideFolderForm                                           = useForm({ name: '' });
+
+    const toggleSlideFolder = (id: number) =>
+        setCollapsedSlideFolders(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+
+    const submitSlideFolderModal = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!slideFolderModal) return;
+        if (slideFolderModal.mode === 'create') {
+            slideFolderForm.post('/console/slide-deck-folders', { onSuccess: () => setSlideFolderModal(null) });
+        } else {
+            slideFolderForm.patch(`/console/slide-deck-folders/${slideFolderModal.id}`, { onSuccess: () => setSlideFolderModal(null) });
+        }
+    };
+
     // ── Media state ──
     const [uploadModal, setUploadModal]                       = useState(false);
     const [mediaFolderModal, setMediaFolderModal]             = useState<{ mode: 'create' } | { mode: 'rename'; id: number } | null>(null);
@@ -93,7 +123,6 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
     const mediaFolderForm = useForm({ name: '' });
 
     // ── Media player state ──
-    const videoRef       = useRef<HTMLVideoElement>(null);
     const audioRef       = useRef<HTMLAudioElement>(null);
     const scrubRef       = useRef<HTMLInputElement>(null);
     const isScrubbingRef = useRef(false);
@@ -193,13 +222,12 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
 
     // ── Media handlers ──
     useEffect(() => {
-        videoRef.current?.pause();
         audioRef.current?.pause();
         setIsPlaying(false);
         setCurrentTime(0);
         setDuration(0);
         if (scrubRef.current) scrubRef.current.value = '0';
-        onHasAudioChange(!!selectedMedia && selectedMedia.type !== 'image');
+        onHasAudioChange(!!selectedMedia && selectedMedia.type === 'audio');
     }, [selectedMedia?.id]);
 
     // Native scrubber — bypasses React's synthetic event system so dragging
@@ -210,7 +238,7 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
 
         const onInput  = () => {
             const t = parseFloat(el.value);
-            const media = videoRef.current ?? audioRef.current;
+            const media = audioRef.current;
             if (media) media.currentTime = t;
             setCurrentTime(t);
         };
@@ -233,40 +261,26 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
     }, [selectedMedia?.id]);
 
     const handleMediaSelect = (file: MediaFile) => {
+        if (file.type === 'video') {
+            window.open(file.url, '_blank', 'noopener,noreferrer');
+            return;
+        }
         setSelectedMedia(file);
         setSmpExpanded(true);
-        // Browsing does NOT touch the live output — only explicit Send/Remove does
     };
 
+    // Images only can go live; audio and video are excluded
     const handleToggleLive = () => {
-        if (!selectedMedia || selectedMedia.type === 'audio') return;
-
+        if (!selectedMedia || selectedMedia.type !== 'image') return;
         if (isCurrentMediaLive) {
-            // Remove from live; pause SMP if it was providing audio for the live video
             onMediaLive(null);
-            if (selectedMedia.type === 'video') {
-                videoRef.current?.pause();
-                setIsPlaying(false);
-            }
         } else {
-            // Send to live — capture current SMP position so live video starts in sync
-            const startTime = selectedMedia.type === 'video'
-                ? (videoRef.current?.currentTime ?? 0)
-                : 0;
-            onMediaLive(selectedMedia, startTime);
-            // Auto-play SMP so it becomes the audio source for the live video
-            if (selectedMedia.type === 'video') {
-                videoRef.current?.play().catch(() => {});
-                setIsPlaying(true);
-            }
+            onMediaLive(selectedMedia);
         }
     };
 
-    const getMediaEl = () =>
-        selectedMedia?.type === 'video' ? videoRef.current : audioRef.current;
-
     const handlePlayPause = () => {
-        const el = getMediaEl();
+        const el = audioRef.current;
         if (!el) return;
         if (isPlaying) {
             el.pause();
@@ -277,8 +291,7 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
         }
     };
 
-
-    const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement | HTMLAudioElement>) => {
+    const handleTimeUpdate = (e: React.SyntheticEvent<HTMLAudioElement>) => {
         const t = e.currentTarget.currentTime;
         if (!isScrubbingRef.current) {
             setCurrentTime(t);
@@ -290,22 +303,15 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
         }
     };
 
-    const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement | HTMLAudioElement>) => {
+    const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLAudioElement>) => {
         const d = e.currentTarget.duration;
         if (isFinite(d) && d > 0) setDuration(d);
         e.currentTarget.volume = volume;
     };
 
     useEffect(() => {
-        if (videoRef.current) videoRef.current.volume = volume;
         if (audioRef.current) audioRef.current.volume = volume;
     }, [volume]);
-
-    // Mute SMP video when the live screen is handling that video's audio,
-    // unmute it when just previewing so the operator can still monitor
-    useEffect(() => {
-        if (videoRef.current) videoRef.current.muted = isCurrentMediaLive;
-    }, [isCurrentMediaLive]);
 
     const handleEnded = () => setIsPlaying(false);
 
@@ -573,24 +579,74 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
             {activeTab === 'slides' && (
                 <div className="lc-library-list">
                     <div className="lc-library-list-header">
-                        <button className="lc-list-action-btn">
+                        <button className="lc-list-action-btn" onClick={() => { slideFolderForm.reset(); setSlideFolderModal({ mode: 'create' }); }}>
                             <FolderPlus size={11} /> New Folder
                         </button>
-                        <button className="lc-list-action-btn">
+                        <button className="lc-list-action-btn" onClick={() => setSlideImportModal(true)}>
                             <Upload size={11} /> Import
                         </button>
                     </div>
-                    {slideDecks.map(deck => (
-                        <div key={deck.id} className="lc-library-item">
-                            <div className={`lc-item-icon ${deck.extension === 'pdf' ? 'lc-icon-pdf' : 'lc-icon-ppt'}`}>
-                                {deck.extension === 'pdf' ? <FileText /> : <Presentation />}
+
+                    {slideDeckFolders.map(folder => (
+                        <div key={folder.id} className={`lc-library-folder${collapsedSlideFolders.has(folder.id) ? ' collapsed' : ''}`}>
+                            <div className="lc-folder-row" onClick={() => toggleSlideFolder(folder.id)}>
+                                <span className="lc-folder-chevron"><ChevronDown /></span>
+                                <span>📁</span>
+                                <span className="lc-folder-name">{folder.name}</span>
+                                <div className="lc-folder-actions" onClick={e => e.stopPropagation()}>
+                                    <button className="lc-folder-btn" title="Rename folder" onClick={() => { slideFolderForm.setData('name', folder.name); setSlideFolderModal({ mode: 'rename', id: folder.id }); }}>
+                                        <Pencil size={11} />
+                                    </button>
+                                    <button className="lc-folder-btn danger" title="Delete folder" onClick={() => setSlideFolderToDelete(folder)}>
+                                        <Trash2 size={11} />
+                                    </button>
+                                </div>
                             </div>
-                            <div className="lc-item-info">
-                                <div className="lc-item-title">{deck.title}</div>
-                                <div className="lc-item-meta">{deck.extension.toUpperCase()} · {deck.slide_count} slides</div>
+                            <div className="lc-folder-contents">
+                                {folder.decks.map(deck => (
+                                    <div
+                                        key={deck.id}
+                                        className={`lc-library-item${activeDeckId === deck.id ? ' active' : ''}`}
+                                        onClick={() => onDeckSelect(deck)}
+                                        onContextMenu={e => { e.preventDefault(); setDeckCtx({ x: e.clientX, y: e.clientY, deck, folderId: folder.id }); }}
+                                    >
+                                        <div className="lc-item-icon lc-icon-pdf">
+                                            {deck.extension === 'images' ? <Image /> : <FileText />}
+                                        </div>
+                                        <div className="lc-item-info">
+                                            <div className="lc-item-title">{deck.title}</div>
+                                            <div className="lc-item-meta">
+                                                {deck.status === 'processing' ? 'Processing…' : deck.status === 'failed' ? 'Failed' : `${deck.slide_count} slides`}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     ))}
+
+                    {uncategorizedDecks.map(deck => (
+                        <div
+                            key={deck.id}
+                            className={`lc-library-item lc-item-root${activeDeckId === deck.id ? ' active' : ''}`}
+                            onClick={() => onDeckSelect(deck)}
+                            onContextMenu={e => { e.preventDefault(); setDeckCtx({ x: e.clientX, y: e.clientY, deck, folderId: null }); }}
+                        >
+                            <div className="lc-item-icon lc-icon-pdf">
+                                {deck.extension === 'images' ? <Image /> : <FileText />}
+                            </div>
+                            <div className="lc-item-info">
+                                <div className="lc-item-title">{deck.title}</div>
+                                <div className="lc-item-meta">
+                                    {deck.status === 'processing' ? 'Processing…' : deck.status === 'failed' ? 'Failed' : `${deck.slide_count} slides`}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    {uncategorizedDecks.length === 0 && slideDeckFolders.length === 0 && (
+                        <div className="lc-library-empty">No slide decks yet. Import a PDF or images.</div>
+                    )}
                 </div>
             )}
 
@@ -612,17 +668,6 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
                         )}
                         {selectedMedia?.type === 'image' && (
                             <img src={selectedMedia.url} alt={selectedMedia.title} className="lc-smp-image" />
-                        )}
-                        {selectedMedia?.type === 'video' && (
-                            <video
-                                ref={videoRef}
-                                src={selectedMedia.url}
-                                className="lc-smp-video"
-                                preload="metadata"
-                                onTimeUpdate={handleTimeUpdate}
-                                onLoadedMetadata={handleLoadedMetadata}
-                                onEnded={handleEnded}
-                            />
                         )}
                         {selectedMedia?.type === 'audio' && (
                             <>
@@ -651,8 +696,8 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
                         </div>
                     )}
 
-                    {/* Scrubber — video/audio only */}
-                    {selectedMedia && (selectedMedia.type === 'video' || selectedMedia.type === 'audio') && (
+                    {/* Scrubber — audio only */}
+                    {selectedMedia?.type === 'audio' && (
                         <div className="lc-smp-scrubber">
                             <span className="lc-smp-time">{formatTime(currentTime)}</span>
                             <input
@@ -670,10 +715,10 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
 
                     {/* Controls */}
                     <div className="lc-smp-controls">
-                        {selectedMedia && (selectedMedia.type === 'video' || selectedMedia.type === 'audio') && (
+                        {selectedMedia?.type === 'audio' && (
                             <>
                                 <button className="lc-smp-btn" onClick={() => {
-                                    const el = getMediaEl();
+                                    const el = audioRef.current;
                                     if (el) el.currentTime = Math.max(0, el.currentTime - 10);
                                 }}>
                                     <SkipBack />
@@ -682,7 +727,7 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
                                     {isPlaying ? <Pause /> : <Play />}
                                 </button>
                                 <button className="lc-smp-btn" onClick={() => {
-                                    const el = getMediaEl();
+                                    const el = audioRef.current;
                                     if (el) el.currentTime = Math.min(duration, el.currentTime + 10);
                                 }}>
                                     <SkipForward />
@@ -693,7 +738,7 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
                         <button
                             className={`lc-smp-send-btn${isCurrentMediaLive ? ' active' : ''}`}
                             onClick={handleToggleLive}
-                            disabled={!selectedMedia || selectedMedia.type === 'audio'}
+                            disabled={!selectedMedia || selectedMedia.type !== 'image'}
                         >
                             {isCurrentMediaLive ? 'On Live' : 'Send Live'}
                         </button>
@@ -753,6 +798,7 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
             editData={editSong ?? undefined}
         />
         <MediaUploadModal open={uploadModal} onClose={() => setUploadModal(false)} mediaFolders={mediaFolders} />
+        <SlideImportModal open={slideImportModal} onClose={() => setSlideImportModal(false)} />
 
         {songToDelete && (
             <SongDeleteModal song={songToDelete} onClose={() => setSongToDelete(null)} />
@@ -771,6 +817,23 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
         )}
         {mediaToDelete && (
             <MediaDeleteModal file={mediaToDelete} onClose={() => setMediaToDelete(null)} />
+        )}
+        {deckToDelete && (
+            <SlideDeckDeleteModal deck={deckToDelete} onClose={() => setDeckToDelete(null)} />
+        )}
+        {slideFolderToDelete && (
+            <SlideDeckFolderDeleteModal folder={slideFolderToDelete} onClose={() => setSlideFolderToDelete(null)} />
+        )}
+        {deckCtx && (
+            <SlideDeckContextMenu
+                x={deckCtx.x}
+                y={deckCtx.y}
+                deck={deckCtx.deck}
+                currentFolderId={deckCtx.folderId}
+                slideDeckFolders={slideDeckFolders}
+                onClose={() => setDeckCtx(null)}
+                onDelete={deck => { setDeckCtx(null); setDeckToDelete(deck); }}
+            />
         )}
 
         {/* Song Folder Modal (create + rename) */}
@@ -868,6 +931,40 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
                             <button type="button" className="lc-modal-btn" onClick={() => setMediaFolderModal(null)}>Cancel</button>
                             <button type="submit" className="lc-modal-btn primary" disabled={mediaFolderForm.processing}>
                                 {mediaFolderForm.processing ? 'Saving…' : mediaFolderModal.mode === 'create' ? 'Create Folder' : 'Save'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        )}
+
+        {/* Slide Deck Folder Modal (create + rename) */}
+        {slideFolderModal && (
+            <div className="lc-modal-backdrop" onClick={() => setSlideFolderModal(null)}>
+                <div className="lc-modal" onClick={e => e.stopPropagation()}>
+                    <div className="lc-modal-header">
+                        <span>{slideFolderModal.mode === 'create' ? 'New Folder' : 'Rename Folder'}</span>
+                        <button className="lc-modal-close" onClick={() => setSlideFolderModal(null)}>✕</button>
+                    </div>
+                    <form onSubmit={submitSlideFolderModal}>
+                        <div className="lc-modal-body">
+                            <label className="lc-modal-label">Folder Name</label>
+                            <input
+                                className={`lc-modal-input${slideFolderForm.errors.name ? ' error' : ''}`}
+                                type="text"
+                                placeholder="e.g. Sunday Sermon"
+                                value={slideFolderForm.data.name}
+                                onChange={e => slideFolderForm.setData('name', e.target.value)}
+                                autoFocus
+                            />
+                            {slideFolderForm.errors.name && (
+                                <span className="lc-modal-error">{slideFolderForm.errors.name}</span>
+                            )}
+                        </div>
+                        <div className="lc-modal-footer">
+                            <button type="button" className="lc-modal-btn" onClick={() => setSlideFolderModal(null)}>Cancel</button>
+                            <button type="submit" className="lc-modal-btn primary" disabled={slideFolderForm.processing}>
+                                {slideFolderForm.processing ? 'Saving…' : slideFolderModal.mode === 'create' ? 'Create Folder' : 'Save'}
                             </button>
                         </div>
                     </form>

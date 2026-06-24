@@ -42,4 +42,8 @@ return [
         'gnt_id'  => env('BIBLE_GNT_ID'),
     ],
 
+    'ghostscript' => [
+        'path' => env('GHOSTSCRIPT_PATH', 'gswin64c'),
+    ],
+
 ];

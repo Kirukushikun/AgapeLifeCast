@@ -9,6 +9,7 @@ use App\Models\SavedVerse;
 use App\Models\Schedule;
 use App\Models\VerseFolder;
 use App\Models\SlideDeck;
+use App\Models\SlideDeckFolder;
 use App\Models\Song;
 use App\Models\SongFolder;
 use App\Models\Theme;
@@ -195,14 +196,34 @@ class ConsoleController extends Controller
             ->orderBy('type')->orderBy('title')
             ->get()->map($mediaMapFn);
 
-        $slideDecks = SlideDeck::orderBy('title')
+        $deckMapFn = fn ($d) => [
+            'id'          => $d->id,
+            'folder_id'   => $d->folder_id,
+            'title'       => $d->title,
+            'extension'   => $d->extension,
+            'slide_count' => $d->slide_count,
+            'status'      => $d->status,
+            'slides'      => $d->slides->map(fn ($s) => [
+                'id'         => $s->id,
+                'sort_order' => $s->sort_order,
+                'url'        => $s->url,
+            ]),
+        ];
+
+        $slideDeckFolders = SlideDeckFolder::with(['decks.slides'])
+            ->orderBy('sort_order')
             ->get()
-            ->map(fn ($d) => [
-                'id'          => $d->id,
-                'title'       => $d->title,
-                'extension'   => $d->extension,
-                'slide_count' => $d->slide_count,
+            ->map(fn ($f) => [
+                'id'    => $f->id,
+                'name'  => $f->name,
+                'decks' => $f->decks->map($deckMapFn),
             ]);
+
+        $uncategorizedDecks = SlideDeck::with('slides')
+            ->whereNull('folder_id')
+            ->orderBy('title')
+            ->get()
+            ->map($deckMapFn);
 
         // Most recent schedule with its ordered items + their schedulable resolved
         $scheduleModel = Schedule::with(['items' => fn ($q) => $q->orderBy('sort_order')])
@@ -279,7 +300,8 @@ class ConsoleController extends Controller
             'savedVerses'   => $savedVerses,
             'mediaFolders'       => $mediaFolders,
             'uncategorizedMedia' => $uncategorizedMedia,
-            'slideDecks'  => $slideDecks,
+            'slideDeckFolders'  => $slideDeckFolders,
+            'uncategorizedDecks' => $uncategorizedDecks,
             'schedule'     => $schedule,
             'themes'       => $themes,
             'selectedSong' => $selectedSong,

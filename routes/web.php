@@ -3,6 +3,7 @@
 use App\Http\Controllers\Console\BibleController;
 use App\Http\Controllers\Console\ConsoleController;
 use App\Http\Controllers\Console\MediaController;
+use App\Http\Controllers\Console\SlideDeckController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login')->name('home');
@@ -28,6 +29,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/console/media-folders',                      [MediaController::class, 'storeFolder'])->name('console.media-folders.store');
     Route::patch('/console/media-folders/{mediaFolder}',       [MediaController::class, 'updateFolder'])->name('console.media-folders.update');
     Route::delete('/console/media-folders/{mediaFolder}',      [MediaController::class, 'destroyFolder'])->name('console.media-folders.destroy');
+
+    // Slide Decks
+    Route::post('/console/slide-decks',                              [SlideDeckController::class, 'store'])->name('console.slide-decks.store');
+    Route::post('/console/slide-decks/images',                       [SlideDeckController::class, 'storeImages'])->name('console.slide-decks.store-images');
+    Route::patch('/console/slide-decks/{slideDeck}/move',            [SlideDeckController::class, 'moveDeck'])->name('console.slide-decks.move');
+    Route::delete('/console/slide-decks/{slideDeck}',                [SlideDeckController::class, 'destroy'])->name('console.slide-decks.destroy');
+    // Slide Deck Folders
+    Route::post('/console/slide-deck-folders',                       [SlideDeckController::class, 'storeFolder'])->name('console.slide-deck-folders.store');
+    Route::patch('/console/slide-deck-folders/{slideDeckFolder}',    [SlideDeckController::class, 'updateFolder'])->name('console.slide-deck-folders.update');
+    Route::delete('/console/slide-deck-folders/{slideDeckFolder}',   [SlideDeckController::class, 'destroyFolder'])->name('console.slide-deck-folders.destroy');
 
     Route::post('/console/songs',              [ConsoleController::class, 'storeSong'])->name('console.songs.store');
     Route::patch('/console/songs/{song}',      [ConsoleController::class, 'updateSong'])->name('console.songs.update');

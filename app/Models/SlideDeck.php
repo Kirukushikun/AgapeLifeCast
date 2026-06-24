@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SlideDeck extends Model
 {
     protected $fillable = [
-        'title', 'disk_path', 'mime_type',
-        'extension', 'slide_count', 'size',
+        'folder_id', 'title', 'disk_path', 'mime_type',
+        'extension', 'slide_count', 'size', 'status',
     ];
 
     protected $casts = [
@@ -17,8 +18,13 @@ class SlideDeck extends Model
         'size'        => 'integer',
     ];
 
-    public function getUrlAttribute(): string
+    public function folder(): BelongsTo
     {
-        return Storage::disk('public')->url($this->disk_path);
+        return $this->belongsTo(SlideDeckFolder::class, 'folder_id');
+    }
+
+    public function slides(): HasMany
+    {
+        return $this->hasMany(SlideDeckSlide::class)->orderBy('sort_order');
     }
 }

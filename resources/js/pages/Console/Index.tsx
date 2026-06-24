@@ -52,11 +52,26 @@ export interface MediaFolder {
     files: MediaFile[];
 }
 
+export interface DeckSlide {
+    id: number;
+    sort_order: number;
+    url: string;
+}
+
 export interface SlideDeck {
     id: number;
+    folder_id: number | null;
     title: string;
     extension: string;
     slide_count: number;
+    status: 'processing' | 'ready' | 'failed';
+    slides: DeckSlide[];
+}
+
+export interface SlideDeckFolder {
+    id: number;
+    name: string;
+    decks: SlideDeck[];
 }
 
 export interface ScheduleItem {
@@ -102,26 +117,29 @@ interface Props {
     savedVerses: SavedVerse[];
     mediaFolders: MediaFolder[];
     uncategorizedMedia: MediaFile[];
-    slideDecks: SlideDeck[];
+    slideDeckFolders: SlideDeckFolder[];
+    uncategorizedDecks: SlideDeck[];
     schedule: ScheduleData | null;
     themes: ThemeData[];
     selectedSong: SelectedSong | null;
 }
 
-export default function Index({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDecks, schedule, themes, selectedSong }: Props) {
+export default function Index({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDeckFolders, uncategorizedDecks, schedule, themes, selectedSong }: Props) {
     const [selectedVerse, setSelectedVerse]       = useState<SavedVerse | null>(null);
+    const [selectedDeck, setSelectedDeck]         = useState<SlideDeck | null>(null);
     const [volume, setVolume]                     = useState(0.8);
     const [hasActiveAudio, setHasActiveAudio]     = useState(false);
-    const [liveMedia, setLiveMedia]               = useState<MediaFile | null>(null);
-    const [liveMediaStartTime, setLiveMediaStartTime] = useState(0);
+    const [liveMedia, setLiveMedia]       = useState<MediaFile | null>(null);
+    const [liveMediaKey, setLiveMediaKey] = useState(0);
 
-    const handleMediaLive = (file: MediaFile | null, startTime = 0) => {
+    const handleMediaLive = (file: MediaFile | null) => {
         setLiveMedia(file);
-        setLiveMediaStartTime(file ? startTime : 0);
+        if (file) setLiveMediaKey(k => k + 1);
     };
 
-    const handleVerseSelect = (verse: SavedVerse) => setSelectedVerse(verse);
-    const handleSongSelect  = () => setSelectedVerse(null);
+    const handleVerseSelect = (verse: SavedVerse) => { setSelectedVerse(verse); setSelectedDeck(null); };
+    const handleSongSelect  = () => { setSelectedVerse(null); setSelectedDeck(null); };
+    const handleDeckSelect  = (deck: SlideDeck | null) => { setSelectedDeck(deck); setSelectedVerse(null); };
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -134,12 +152,15 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
                     savedVerses={savedVerses}
                     mediaFolders={mediaFolders}
                     uncategorizedMedia={uncategorizedMedia}
-                    slideDecks={slideDecks}
+                    slideDeckFolders={slideDeckFolders}
+                    uncategorizedDecks={uncategorizedDecks}
                     activeSongId={selectedSong?.id ?? null}
                     activeVerseId={selectedVerse?.id ?? null}
+                    activeDeckId={selectedDeck?.id ?? null}
                     selectedSong={selectedSong}
                     onVerseSelect={handleVerseSelect}
                     onSongSelect={handleSongSelect}
+                    onDeckSelect={handleDeckSelect}
                     volume={volume}
                     onHasAudioChange={setHasActiveAudio}
                     onMediaLive={handleMediaLive}
@@ -148,11 +169,13 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
                 <PreviewArea
                     selectedSong={selectedSong}
                     selectedVerse={selectedVerse}
+                    selectedDeck={selectedDeck}
                     volume={volume}
                     onVolumeChange={setVolume}
                     hasActiveAudio={hasActiveAudio}
                     liveMedia={liveMedia}
-                    liveMediaStartTime={liveMediaStartTime}
+                    liveMediaKey={liveMediaKey}
+                    onMediaLive={handleMediaLive}
                 />
                 <PropertiesPanel schedule={schedule} themes={themes} />
             </div>
