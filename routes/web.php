@@ -3,6 +3,7 @@
 use App\Http\Controllers\Console\BibleController;
 use App\Http\Controllers\Console\ConsoleController;
 use App\Http\Controllers\Console\MediaController;
+use App\Http\Controllers\Console\ScheduleController;
 use App\Http\Controllers\Console\SlideDeckController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,8 +41,19 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/console/slide-deck-folders/{slideDeckFolder}',    [SlideDeckController::class, 'updateFolder'])->name('console.slide-deck-folders.update');
     Route::delete('/console/slide-deck-folders/{slideDeckFolder}',   [SlideDeckController::class, 'destroyFolder'])->name('console.slide-deck-folders.destroy');
 
-    Route::post('/console/songs',              [ConsoleController::class, 'storeSong'])->name('console.songs.store');
-    Route::patch('/console/songs/{song}',      [ConsoleController::class, 'updateSong'])->name('console.songs.update');
-    Route::patch('/console/songs/{song}/move', [ConsoleController::class, 'moveSong'])->name('console.songs.move');
-    Route::delete('/console/songs/{song}',     [ConsoleController::class, 'destroySong'])->name('console.songs.destroy');
+    // Schedule Items
+    Route::post('/console/schedule-items',                  [ScheduleController::class, 'store'])->name('console.schedule-items.store');
+    Route::delete('/console/schedule-items/{scheduleItem}', [ScheduleController::class, 'destroy'])->name('console.schedule-items.destroy');
+
+    Route::post('/console/songs',                    [ConsoleController::class, 'storeSong'])->name('console.songs.store');
+    Route::patch('/console/songs/{song}',            [ConsoleController::class, 'updateSong'])->name('console.songs.update');
+    Route::patch('/console/songs/{song}/move',       [ConsoleController::class, 'moveSong'])->name('console.songs.move');
+    Route::patch('/console/songs/{song}/theme',      [ConsoleController::class, 'updateSongTheme'])->name('console.songs.theme');
+    Route::delete('/console/songs/{song}',           [ConsoleController::class, 'destroySong'])->name('console.songs.destroy');
+
+    // Themes
+    Route::post('/console/themes',                      [ConsoleController::class, 'storeTheme'])->name('console.themes.store');
+    Route::patch('/console/themes/{theme}',             [ConsoleController::class, 'updateTheme'])->name('console.themes.update');
+    Route::patch('/console/themes/{theme}/blank',       [ConsoleController::class, 'toggleBlankTheme'])->name('console.themes.blank');
+    Route::delete('/console/themes/{theme}',            [ConsoleController::class, 'destroyTheme'])->name('console.themes.destroy');
 });

@@ -20,6 +20,65 @@ use Inertia\Response;
 
 class ConsoleController extends Controller
 {
+    public function updateSongTheme(Request $request, Song $song): RedirectResponse
+    {
+        $request->validate(['theme_id' => 'nullable|exists:themes,id']);
+        $song->update(['theme_id' => $request->theme_id ?? null]);
+        return redirect()->route('console.index', ['song' => $song->id]);
+    }
+
+    public function updateTheme(Request $request, Theme $theme): RedirectResponse
+    {
+        $request->validate(['name' => 'required|string|max:100']);
+        $theme->update(['name' => $request->name]);
+        return redirect()->back();
+    }
+
+    public function toggleBlankTheme(Theme $theme): RedirectResponse
+    {
+        if ($theme->is_blank_screen) {
+            $theme->update(['is_blank_screen' => false]);
+        } else {
+            Theme::where('id', '!=', $theme->id)->update(['is_blank_screen' => false]);
+            $theme->update(['is_blank_screen' => true]);
+        }
+        return redirect()->back();
+    }
+
+    public function storeTheme(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'name'              => 'required|string|max:100',
+            'bg_type'           => 'required|in:solid,gradient',
+            'bg_color'          => 'nullable|string|max:20',
+            'bg_gradient_from'  => 'nullable|string|max:20',
+            'bg_gradient_to'    => 'nullable|string|max:20',
+            'bg_gradient_angle' => 'nullable|integer|min:0|max:360',
+            'text_color'        => 'required|string|max:20',
+        ]);
+
+        Theme::create([
+            'name'              => $request->name,
+            'bg_type'           => $request->bg_type,
+            'bg_color'          => $request->bg_color,
+            'bg_gradient_from'  => $request->bg_gradient_from,
+            'bg_gradient_to'    => $request->bg_gradient_to,
+            'bg_gradient_angle' => $request->bg_gradient_angle ?? 135,
+            'text_color'        => $request->text_color,
+            'is_system'         => false,
+        ]);
+
+        return redirect()->back();
+    }
+
+    public function destroyTheme(Theme $theme): RedirectResponse
+    {
+        abort_if($theme->is_system, 403, 'System themes cannot be deleted.');
+        Song::where('theme_id', $theme->id)->update(['theme_id' => null]);
+        $theme->delete();
+        return redirect()->back();
+    }
+
     public function moveSong(Request $request, Song $song): RedirectResponse
     {
         $request->validate(['folder_id' => 'required|exists:song_folders,id']);
@@ -249,10 +308,11 @@ class ConsoleController extends Controller
                 };
 
                 return [
-                    'id'   => $item->id,
-                    'type' => $type,
-                    'name' => $name,
-                    'icon' => $icon,
+                    'id'             => $item->id,
+                    'schedulable_id' => $item->schedulable_id,
+                    'type'           => $type,
+                    'name'           => $name,
+                    'icon'           => $icon,
                 ];
             }),
         ] : null;
@@ -260,11 +320,12 @@ class ConsoleController extends Controller
         $themes = Theme::orderBy('is_system', 'desc')->orderBy('name')
             ->get()
             ->map(fn ($t) => [
-                'id'         => $t->id,
-                'name'       => $t->name,
-                'css_bg'     => $t->css_background,
-                'text_color' => $t->text_color,
-                'is_system'  => $t->is_system,
+                'id'              => $t->id,
+                'name'            => $t->name,
+                'css_bg'          => $t->css_background,
+                'text_color'      => $t->text_color,
+                'is_system'       => $t->is_system,
+                'is_blank_screen' => $t->is_blank_screen,
             ]);
 
         // Resolve which song to show in PreviewArea
@@ -282,6 +343,7 @@ class ConsoleController extends Controller
             'title'     => $activeSong->title,
             'author'    => $activeSong->author,
             'folder_id' => $activeSong->folder_id,
+            'theme_id'  => $activeSong->theme_id,
             'slides' => $activeSong->slides->map(fn ($s) => [
                 'id'      => $s->id,
                 'label'   => $s->label,

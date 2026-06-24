@@ -16,10 +16,12 @@ class Theme extends Model
         'bg_image_path',
         'text_color',
         'is_system',
+        'is_blank_screen',
     ];
 
     protected $casts = [
         'is_system'          => 'boolean',
+        'is_blank_screen'    => 'boolean',
         'bg_gradient_angle'  => 'integer',
     ];
 

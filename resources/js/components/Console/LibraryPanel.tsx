@@ -59,7 +59,7 @@ function mediaIconClass(type: MediaFile['type']) {
     return 'lc-icon-image';
 }
 
-export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDeckFolders, uncategorizedDecks, activeSongId, activeVerseId, activeDeckId, selectedSong, onVerseSelect, onSongSelect, onDeckSelect, volume, onHasAudioChange, onMediaLive, liveMedia }: { songFolders: SongFolder[]; uncategorizedSongs: SongItem[]; verseFolders: VerseFolder[]; savedVerses: SavedVerse[]; mediaFolders: MediaFolder[]; uncategorizedMedia: MediaFile[]; slideDeckFolders: SlideDeckFolder[]; uncategorizedDecks: SlideDeck[]; activeSongId: number | null; activeVerseId: number | null; activeDeckId: number | null; selectedSong: SelectedSong | null; onVerseSelect: (verse: SavedVerse) => void; onSongSelect: () => void; onDeckSelect: (deck: SlideDeck | null) => void; volume: number; onHasAudioChange: (v: boolean) => void; onMediaLive: (file: MediaFile | null) => void; liveMedia: MediaFile | null }) {
+export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDeckFolders, uncategorizedDecks, activeSongId, activeVerseId, activeDeckId, selectedSong, onVerseSelect, onSongSelect, onDeckSelect, volume, onHasAudioChange, onMediaLive, liveMedia, scheduleMedia }: { songFolders: SongFolder[]; uncategorizedSongs: SongItem[]; verseFolders: VerseFolder[]; savedVerses: SavedVerse[]; mediaFolders: MediaFolder[]; uncategorizedMedia: MediaFile[]; slideDeckFolders: SlideDeckFolder[]; uncategorizedDecks: SlideDeck[]; activeSongId: number | null; activeVerseId: number | null; activeDeckId: number | null; selectedSong: SelectedSong | null; onVerseSelect: (verse: SavedVerse) => void; onSongSelect: () => void; onDeckSelect: (deck: SlideDeck | null) => void; volume: number; onHasAudioChange: (v: boolean) => void; onMediaLive: (file: MediaFile | null) => void; liveMedia: MediaFile | null; scheduleMedia: { file: MediaFile; n: number } | null }) {
 
     const selectSong = (id: number) => {
         onSongSelect();
@@ -229,6 +229,12 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
         if (scrubRef.current) scrubRef.current.value = '0';
         onHasAudioChange(!!selectedMedia && selectedMedia.type === 'audio');
     }, [selectedMedia?.id]);
+
+    useEffect(() => {
+        if (!scheduleMedia) return;
+        setSelectedMedia(scheduleMedia.file);
+        setActiveTab('media');
+    }, [scheduleMedia]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Native scrubber — bypasses React's synthetic event system so dragging
     // while playing doesn't fight React re-renders.

@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 
 export default function Topbar() {
-    const [isDark, setIsDark] = useState(false);
-
-    useEffect(() => {
-        setIsDark(document.documentElement.classList.contains('dark'));
-    }, []);
+    const [isDark, setIsDark] = useState(() => {
+        const stored = localStorage.getItem('lc-dark-mode');
+        if (stored !== null) return stored === 'true';
+        return document.documentElement.classList.contains('dark');
+    });
 
     useEffect(() => {
         document.documentElement.classList.toggle('dark', isDark);
+        localStorage.setItem('lc-dark-mode', String(isDark));
     }, [isDark]);
 
     return (

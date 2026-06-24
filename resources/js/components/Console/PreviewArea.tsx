@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { SelectedSong, SavedVerse, MediaFile, SlideDeck } from '@/pages/Console/Index';
+import type { SelectedSong, SavedVerse, MediaFile, SlideDeck, ThemeData } from '@/pages/Console/Index';
 
 const SLIDE_W = 1280;
 const SLIDE_H = 720;
@@ -120,8 +120,8 @@ function DeckSlideScreen({ url, alt }: { url: string; alt: string }) {
     );
 }
 
-function renderLiveScreen(snapshot: LiveSnapshot, liveMedia: MediaFile | null, isBlank: boolean, liveMediaKey: number) {
-    if (isBlank)    return <div className="lc-preview-screen is-blank" />;
+function renderLiveScreen(snapshot: LiveSnapshot, liveMedia: MediaFile | null, isBlank: boolean, liveMediaKey: number, blankTheme: ThemeData | null) {
+    if (isBlank)    return <SlideCanvas label={null} text="" blank songTitle="" theme={blankTheme} />;
     if (liveMedia)  return <MediaScreen key={liveMediaKey} file={liveMedia} />;
     if (!snapshot)  return <div className="lc-preview-screen is-blank" />;
 
@@ -135,7 +135,7 @@ function renderLiveScreen(snapshot: LiveSnapshot, liveMedia: MediaFile | null, i
     return <SlideCanvas label={slide.label} text={slide.content} blank={isBlank} songTitle={snapshot.song.title} theme={snapshot.song.theme} />;
 }
 
-export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck, volume, onVolumeChange, hasActiveAudio, liveMedia, liveMediaKey, onMediaLive }: {
+export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck, volume, onVolumeChange, hasActiveAudio, liveMedia, liveMediaKey, onMediaLive, blankTheme }: {
     selectedSong: SelectedSong | null;
     selectedVerse: SavedVerse | null;
     selectedDeck: SlideDeck | null;
@@ -145,6 +145,7 @@ export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck,
     liveMedia: MediaFile | null;
     liveMediaKey: number;
     onMediaLive: (file: MediaFile | null) => void;
+    blankTheme: ThemeData | null;
 }) {
     const slides = selectedSong?.slides ?? [];
 
@@ -372,7 +373,7 @@ export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck,
                                 {isOnAir ? 'ON AIR' : 'OFFLINE'}
                             </span>
                         </div>
-                        {renderLiveScreen(liveSnapshot, liveMedia, isBlank, liveMediaKey)}
+                        {renderLiveScreen(liveSnapshot, liveMedia, isBlank, liveMediaKey, blankTheme)}
                     </div>
 
                 </div>

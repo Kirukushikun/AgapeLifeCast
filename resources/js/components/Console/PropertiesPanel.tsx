@@ -1,10 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
+import { router } from '@inertiajs/react';
 import {
     Bold, Italic, Layers, AlignLeft, AlignCenter, AlignRight,
-    ArrowUp, ArrowDown, AlignJustify, Trash2, GripVertical,
-    ChevronDown, Plus, ClipboardList,
+    ArrowUp, ArrowDown, AlignJustify, Trash2,
+    ChevronDown, Plus, ClipboardList, X,
 } from 'lucide-react';
-import type { ScheduleData, ThemeData } from '@/pages/Console/Index';
+import AddScheduleItemModal from '@/components/Console/AddScheduleItemModal';
+import type {
+    ScheduleData, ThemeData, SelectedSong,
+    SongFolder, SongItem, VerseFolder, SavedVerse,
+    MediaFolder, MediaFile, SlideDeckFolder, SlideDeck,
+} from '@/pages/Console/Index';
 
 type ComposerType = 'solid' | 'gradient' | 'image';
 
@@ -16,9 +22,43 @@ const COLORS = [
     { value: '#cccccc', title: 'Gray'        },
 ];
 
-export default function PropertiesPanel({ schedule, themes }: { schedule: ScheduleData | null; themes: ThemeData[] }) {
+export default function PropertiesPanel({
+    schedule, themes, selectedSong, selectedVerse, selectedDeck,
+    songFolders, uncategorizedSongs,
+    verseFolders, savedVerses,
+    mediaFolders, uncategorizedMedia,
+    slideDeckFolders, uncategorizedDecks,
+    onScheduleItemClick,
+}: {
+    schedule: ScheduleData | null;
+    themes: ThemeData[];
+    selectedSong: SelectedSong | null;
+    selectedVerse: SavedVerse | null;
+    selectedDeck: SlideDeck | null;
+    songFolders: SongFolder[];
+    uncategorizedSongs: SongItem[];
+    verseFolders: VerseFolder[];
+    savedVerses: SavedVerse[];
+    mediaFolders: MediaFolder[];
+    uncategorizedMedia: MediaFile[];
+    slideDeckFolders: SlideDeckFolder[];
+    uncategorizedDecks: SlideDeck[];
+    onScheduleItemClick: (type: string, schedulableId: number) => void;
+}) {
     const [presetOpen, setPresetOpen]           = useState(false);
-    const [activeItem, setActiveItem]           = useState(0);
+    const [addModalOpen, setAddModalOpen]       = useState(false);
+    const [ctxTheme, setCtxTheme]               = useState<ThemeData | null>(null);
+    const [ctxPos, setCtxPos]                   = useState({ x: 0, y: 0 });
+
+    const items = schedule?.items ?? [];
+    let activeSchedIdx = -1;
+    if (selectedDeck) {
+        activeSchedIdx = items.findIndex(i => i.type === 'SlideDeck' && i.schedulable_id === selectedDeck.id);
+    } else if (selectedVerse) {
+        activeSchedIdx = items.findIndex(i => i.type === 'SavedVerse' && i.schedulable_id === selectedVerse.id);
+    } else if (selectedSong) {
+        activeSchedIdx = items.findIndex(i => i.type === 'Song' && i.schedulable_id === selectedSong.id);
+    }
     const [bold, setBold]                       = useState(true);
     const [italic, setItalic]                   = useState(false);
     const [shadow, setShadow]                   = useState(false);
@@ -46,6 +86,13 @@ export default function PropertiesPanel({ schedule, themes }: { schedule: Schedu
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    useEffect(() => {
+        const close = () => setCtxTheme(null);
+        document.addEventListener('click', close);
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+        return () => document.removeEventListener('click', close);
     }, []);
 
     /* derive composer preview background */
@@ -83,29 +130,30 @@ export default function PropertiesPanel({ schedule, themes }: { schedule: Schedu
                             </div>
                         </div>
 
-                        <button className="lc-add-sched-btn">+ Add</button>
+                        <button className="lc-add-sched-btn" onClick={() => setAddModalOpen(true)}>+ Add</button>
                     </div>
                 </div>
 
                 <div className="lc-sched-list">
-                    {(schedule?.items ?? []).length === 0 && (
+                    {items.length === 0 && (
                         <div className="lc-sched-empty">No items in schedule yet.</div>
                     )}
-                    {(schedule?.items ?? []).map((item, idx) => (
+                    {items.map((item, idx) => (
                         <div
                             key={item.id}
-                            className={`lc-sched-row${activeItem === idx ? ' active' : ''}`}
-                            onClick={() => setActiveItem(idx)}
+                            className={`lc-sched-row${activeSchedIdx === idx ? ' active' : ''}`}
+                            onClick={() => onScheduleItemClick(item.type, item.schedulable_id)}
                         >
                             <span className="lc-sr-icon">{item.icon}</span>
                             <div className="lc-sr-info">
                                 <div className="lc-sr-name">{item.name}</div>
                             </div>
                             <div className="lc-sr-actions">
-                                <button className="lc-sr-btn" title="Drag to reorder">
-                                    <GripVertical />
-                                </button>
-                                <button className="lc-sr-btn remove" title="Remove">
+                                <button
+                                    className="lc-sr-btn remove"
+                                    title="Remove"
+                                    onClick={e => { e.stopPropagation(); router.delete(`/console/schedule-items/${item.id}`); }}
+                                >
                                     <Trash2 />
                                 </button>
                             </div>
@@ -240,14 +288,23 @@ export default function PropertiesPanel({ schedule, themes }: { schedule: Schedu
                 <h4>Theme</h4>
 
                 <div className="lc-theme-cards">
-                    {themes.map((theme, idx) => (
+                    {themes.map(theme => (
                         <div
                             key={theme.id}
-                            className={`lc-theme-card${activeTheme === idx ? ' active' : ''}`}
+                            className={`lc-theme-card${selectedSong?.theme_id === theme.id ? ' active' : ''}`}
                             style={{ background: theme.css_bg }}
-                            onClick={() => setActiveTheme(idx)}
+                            onClick={() => {
+                                if (!selectedSong) return;
+                                router.patch(`/console/songs/${selectedSong.id}/theme`, { theme_id: theme.id });
+                            }}
+                            onContextMenu={e => {
+                                e.preventDefault();
+                                setCtxTheme(theme);
+                                setCtxPos({ x: e.clientX, y: e.clientY });
+                            }}
                         >
                             <span className="tc-label">{theme.name}</span>
+                            {theme.is_blank_screen && <span className="lc-tc-blank-badge">blank</span>}
                         </div>
                     ))}
                     <button
@@ -258,6 +315,15 @@ export default function PropertiesPanel({ schedule, themes }: { schedule: Schedu
                         <Plus size={20} />
                     </button>
                 </div>
+
+                {selectedSong?.theme_id && (
+                    <button
+                        className="lc-theme-clear-btn"
+                        onClick={() => router.patch(`/console/songs/${selectedSong.id}/theme`, { theme_id: null })}
+                    >
+                        Clear theme
+                    </button>
+                )}
 
                 {/* Theme Composer */}
                 <div className={`lc-theme-composer${composerOpen ? ' open' : ''}`}>
@@ -272,7 +338,7 @@ export default function PropertiesPanel({ schedule, themes }: { schedule: Schedu
 
                     {/* Type switcher */}
                     <div className="lc-tc-type-btns">
-                        {(['solid', 'gradient', 'image'] as ComposerType[]).map(t => (
+                        {(['solid', 'gradient'] as ComposerType[]).map(t => (
                             <button
                                 key={t}
                                 className={`lc-tc-type-btn${composerType === t ? ' active' : ''}`}
@@ -326,15 +392,6 @@ export default function PropertiesPanel({ schedule, themes }: { schedule: Schedu
                         </>
                     )}
 
-                    {/* Image fields */}
-                    {composerType === 'image' && (
-                        <div className="lc-tc-image-zone">
-                            <input type="file" accept="image/*" />
-                            <span className="tz-icon">🖼️</span>
-                            <div className="tz-hint">Click to upload — PNG or JPG</div>
-                        </div>
-                    )}
-
                     {/* Text color (shared) */}
                     <div className="lc-tc-color-row">
                         <label>Text</label>
@@ -350,7 +407,25 @@ export default function PropertiesPanel({ schedule, themes }: { schedule: Schedu
                             value={themeName}
                             onChange={e => setThemeName(e.target.value)}
                         />
-                        <button className="lc-tc-save-btn">Add</button>
+                        <button
+                            className="lc-tc-save-btn"
+                            disabled={!themeName.trim()}
+                            onClick={() => {
+                                router.post('/console/themes', {
+                                    name:              themeName.trim(),
+                                    bg_type:           composerType,
+                                    bg_color:          composerType === 'solid' ? solidColor : null,
+                                    bg_gradient_from:  composerType === 'gradient' ? gradFrom : null,
+                                    bg_gradient_to:    composerType === 'gradient' ? gradTo   : null,
+                                    bg_gradient_angle: composerType === 'gradient' ? gradAngle : null,
+                                    text_color:        tcTextColor,
+                                }, {
+                                    onSuccess: () => { setThemeName(''); setComposerOpen(false); },
+                                });
+                            }}
+                        >
+                            Add
+                        </button>
                     </div>
                 </div>
             </div>
@@ -367,6 +442,54 @@ export default function PropertiesPanel({ schedule, themes }: { schedule: Schedu
                     </select>
                 </div>
             </div>
+
+            {addModalOpen && (
+                <AddScheduleItemModal
+                    songFolders={songFolders}
+                    uncategorizedSongs={uncategorizedSongs}
+                    verseFolders={verseFolders}
+                    savedVerses={savedVerses}
+                    mediaFolders={mediaFolders}
+                    uncategorizedMedia={uncategorizedMedia}
+                    slideDeckFolders={slideDeckFolders}
+                    uncategorizedDecks={uncategorizedDecks}
+                    onClose={() => setAddModalOpen(false)}
+                />
+            )}
+
+            {ctxTheme && (
+                <div
+                    className="lc-theme-ctx"
+                    style={{ top: ctxPos.y, left: ctxPos.x }}
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div
+                        className="lc-theme-ctx-item"
+                        onClick={() => { router.patch(`/console/themes/${ctxTheme.id}/blank`); setCtxTheme(null); }}
+                    >
+                        {ctxTheme.is_blank_screen ? '✓ Used as Blank Screen' : '⬛ Set as Blank Screen'}
+                    </div>
+                    {!ctxTheme.is_system && <>
+                        <div className="lc-theme-ctx-sep" />
+                        <div
+                            className="lc-theme-ctx-item"
+                            onClick={() => {
+                                const n = prompt('Rename theme:', ctxTheme.name);
+                                if (n?.trim()) router.patch(`/console/themes/${ctxTheme.id}`, { name: n.trim() });
+                                setCtxTheme(null);
+                            }}
+                        >
+                            ✏️ Rename
+                        </div>
+                        <div
+                            className="lc-theme-ctx-item lc-theme-ctx-danger"
+                            onClick={() => { router.delete(`/console/themes/${ctxTheme.id}`); setCtxTheme(null); }}
+                        >
+                            🗑️ Delete
+                        </div>
+                    </>}
+                </div>
+            )}
 
         </aside>
     );

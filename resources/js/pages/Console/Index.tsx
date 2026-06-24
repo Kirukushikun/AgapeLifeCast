@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { router } from '@inertiajs/react';
 import Topbar from '@/components/Console/Topbar';
 import LibraryPanel from '@/components/Console/LibraryPanel';
 import PreviewArea from '@/components/Console/PreviewArea';
@@ -76,6 +77,7 @@ export interface SlideDeckFolder {
 
 export interface ScheduleItem {
     id: number;
+    schedulable_id: number;
     type: string;
     name: string;
     icon: string;
@@ -93,6 +95,7 @@ export interface ThemeData {
     css_bg: string;
     text_color: string;
     is_system: boolean;
+    is_blank_screen: boolean;
 }
 
 export interface SlideData {
@@ -106,6 +109,7 @@ export interface SelectedSong {
     title: string;
     author: string | null;
     folder_id: number | null;
+    theme_id: number | null;
     slides: SlideData[];
     theme: { css_bg: string; text_color: string } | null;
 }
@@ -131,6 +135,7 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
     const [hasActiveAudio, setHasActiveAudio]     = useState(false);
     const [liveMedia, setLiveMedia]       = useState<MediaFile | null>(null);
     const [liveMediaKey, setLiveMediaKey] = useState(0);
+    const [scheduleMedia, setScheduleMedia] = useState<{ file: MediaFile; n: number } | null>(null);
 
     const handleMediaLive = (file: MediaFile | null) => {
         setLiveMedia(file);
@@ -140,6 +145,28 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
     const handleVerseSelect = (verse: SavedVerse) => { setSelectedVerse(verse); setSelectedDeck(null); };
     const handleSongSelect  = () => { setSelectedVerse(null); setSelectedDeck(null); };
     const handleDeckSelect  = (deck: SlideDeck | null) => { setSelectedDeck(deck); setSelectedVerse(null); };
+
+    const handleScheduleItemClick = (type: string, schedulableId: number) => {
+        if (type === 'Song') {
+            router.get('/console', { song: schedulableId });
+        } else if (type === 'SavedVerse') {
+            const verse = [...savedVerses, ...verseFolders.flatMap(f => f.verses)].find(v => v.id === schedulableId);
+            if (verse) handleVerseSelect(verse);
+        } else if (type === 'SlideDeck') {
+            const deck = [...uncategorizedDecks, ...slideDeckFolders.flatMap(f => f.decks)].find(d => d.id === schedulableId);
+            if (deck) handleDeckSelect(deck);
+        } else if (type === 'MediaFile') {
+            const file = [...uncategorizedMedia, ...mediaFolders.flatMap(f => f.files)].find(m => m.id === schedulableId);
+            if (!file) return;
+            if (file.type === 'video') {
+                window.open(file.url, '_blank', 'noopener,noreferrer');
+            } else {
+                setScheduleMedia(prev => ({ file, n: (prev?.n ?? 0) + 1 }));
+            }
+        }
+    };
+
+    const blankTheme = themes.find(t => t.is_blank_screen) ?? null;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -165,6 +192,7 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
                     onHasAudioChange={setHasActiveAudio}
                     onMediaLive={handleMediaLive}
                     liveMedia={liveMedia}
+                    scheduleMedia={scheduleMedia}
                 />
                 <PreviewArea
                     selectedSong={selectedSong}
@@ -176,8 +204,24 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
                     liveMedia={liveMedia}
                     liveMediaKey={liveMediaKey}
                     onMediaLive={handleMediaLive}
+                    blankTheme={blankTheme}
                 />
-                <PropertiesPanel schedule={schedule} themes={themes} />
+                <PropertiesPanel
+                    schedule={schedule}
+                    themes={themes}
+                    selectedSong={selectedSong}
+                    selectedVerse={selectedVerse}
+                    selectedDeck={selectedDeck}
+                    songFolders={songFolders}
+                    uncategorizedSongs={uncategorizedSongs}
+                    verseFolders={verseFolders}
+                    savedVerses={savedVerses}
+                    mediaFolders={mediaFolders}
+                    uncategorizedMedia={uncategorizedMedia}
+                    slideDeckFolders={slideDeckFolders}
+                    uncategorizedDecks={uncategorizedDecks}
+                    onScheduleItemClick={handleScheduleItemClick}
+                />
             </div>
         </div>
     );
