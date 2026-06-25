@@ -106,6 +106,55 @@ export interface ThemeData {
     is_blank_screen: boolean;
 }
 
+export interface TextStyleData {
+    font: string;
+    fontSize: number;
+    bold: boolean;
+    italic: boolean;
+    shadow: boolean;
+    textAlign: 'left' | 'center' | 'right';
+    textPos: 'top' | 'center' | 'bottom';
+    lineSpacing: number;
+    textColor: string;
+    labelColor: string;
+    transition: 'none' | 'fade' | 'zoom' | 'slide';
+}
+
+const TEXT_STYLE_DEFAULTS: TextStyleData = {
+    font: 'Segoe UI',
+    fontSize: 48,
+    bold: true,
+    italic: false,
+    shadow: false,
+    textAlign: 'center',
+    textPos: 'center',
+    lineSpacing: 1.7,
+    textColor: '#ffffff',
+    labelColor: '#8cc341',
+    transition: 'fade',
+};
+
+function useTextStyle() {
+    const [textStyle, setTextStyle] = useState<TextStyleData>(() => {
+        try {
+            const saved = localStorage.getItem('lc-text-style');
+            return saved ? { ...TEXT_STYLE_DEFAULTS, ...JSON.parse(saved) } : TEXT_STYLE_DEFAULTS;
+        } catch {
+            return TEXT_STYLE_DEFAULTS;
+        }
+    });
+
+    const updateTextStyle = (patch: Partial<TextStyleData>) => {
+        setTextStyle(prev => {
+            const next = { ...prev, ...patch };
+            localStorage.setItem('lc-text-style', JSON.stringify(next));
+            return next;
+        });
+    };
+
+    return { textStyle, updateTextStyle };
+}
+
 export interface SlideData {
     id: number;
     label: string | null;
@@ -141,6 +190,7 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
     const [selectedVerse, setSelectedVerse]       = useState<SavedVerse | null>(null);
     const [selectedDeck, setSelectedDeck]         = useState<SlideDeck | null>(null);
     const [outputRatio, setOutputRatio]           = useState('16/9');
+    const { textStyle, updateTextStyle }          = useTextStyle();
     const [volume, setVolume]                     = useState(0.8);
     const [hasActiveAudio, setHasActiveAudio]     = useState(false);
     const [liveMedia, setLiveMedia]       = useState<MediaFile | null>(null);
@@ -221,6 +271,7 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
                     onMediaLive={handleMediaLive}
                     blankTheme={blankTheme}
                     outputRatio={outputRatio}
+                    textStyle={textStyle}
                 />
                 <PropertiesPanel
                     schedule={schedule}
@@ -241,6 +292,8 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
                     onRatioChange={setOutputRatio}
                     onScheduleItemClick={handleScheduleItemClick}
                     onVerseThemeChange={handleVerseThemeChange}
+                    textStyle={textStyle}
+                    onTextStyleChange={updateTextStyle}
                 />
             </div>
         </div>

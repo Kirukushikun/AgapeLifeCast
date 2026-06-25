@@ -11,17 +11,11 @@ import type {
     ScheduleData, ThemeData, SelectedSong, SchedulePreset,
     SongFolder, SongItem, VerseFolder, SavedVerse,
     MediaFolder, MediaFile, SlideDeckFolder, SlideDeck,
+    TextStyleData,
 } from '@/pages/Console/Index';
 
 type ComposerType = 'solid' | 'gradient' | 'image';
 
-const COLORS = [
-    { value: '#ffffff', title: 'White'       },
-    { value: '#8cc341', title: 'Green'       },
-    { value: '#a8d966', title: 'Light Green' },
-    { value: '#ffdd57', title: 'Yellow'      },
-    { value: '#cccccc', title: 'Gray'        },
-];
 
 const RATIOS: { label: string; value: string }[] = [
     { label: '16:9', value: '16/9' },
@@ -41,6 +35,8 @@ export default function PropertiesPanel({
     onRatioChange,
     onScheduleItemClick,
     onVerseThemeChange,
+    textStyle,
+    onTextStyleChange,
 }: {
     schedule: ScheduleData | null;
     themes: ThemeData[];
@@ -60,6 +56,8 @@ export default function PropertiesPanel({
     onRatioChange: (ratio: string) => void;
     onScheduleItemClick: (type: string, schedulableId: number) => void;
     onVerseThemeChange: (themeId: number | null, theme: { css_bg: string; text_color: string } | null) => void;
+    textStyle: TextStyleData;
+    onTextStyleChange: (patch: Partial<TextStyleData>) => void;
 }) {
     const [presetOpen, setPresetOpen]           = useState(false);
     const [addModalOpen, setAddModalOpen]       = useState(false);
@@ -77,14 +75,6 @@ export default function PropertiesPanel({
     } else if (selectedSong) {
         activeSchedIdx = items.findIndex(i => i.type === 'Song' && i.schedulable_id === selectedSong.id);
     }
-    const [bold, setBold]                       = useState(true);
-    const [italic, setItalic]                   = useState(false);
-    const [shadow, setShadow]                   = useState(false);
-    const [textAlign, setTextAlign]             = useState<'left'|'center'|'right'>('left');
-    const [textPos, setTextPos]                 = useState<'top'|'center'|'bottom'>('center');
-    const [textColor, setTextColor]             = useState('#ffffff');
-    const [verseNumColor, setVerseNumColor]     = useState('#8cc341');
-    const [activeTheme, setActiveTheme]         = useState(0);
     const [composerOpen, setComposerOpen]       = useState(false);
     const [composerType, setComposerType]       = useState<ComposerType>('solid');
     const [solidColor, setSolidColor]           = useState('#1a1a2e');
@@ -243,67 +233,88 @@ export default function PropertiesPanel({
 
                 <div className="lc-field-row">
                     <label>Font</label>
-                    <select>
-                        <option>Segoe UI</option>
-                        <option>Arial</option>
-                        <option>Times New Roman</option>
-                        <option>Georgia</option>
+                    <select value={textStyle.font} onChange={e => onTextStyleChange({ font: e.target.value })}>
+                        <option value="Segoe UI">Segoe UI</option>
+                        <option value="Arial">Arial</option>
+                        <option value="Helvetica">Helvetica</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Poppins">Poppins</option>
                     </select>
                 </div>
 
                 <div className="lc-field-row">
                     <label>Size</label>
-                    <input type="range" min="20" max="80" defaultValue="48" />
+                    <input
+                        type="range" min="20" max="120" step="2"
+                        value={textStyle.fontSize}
+                        onChange={e => onTextStyleChange({ fontSize: Number(e.target.value) })}
+                    />
+                </div>
+
+                <div className="lc-field-row">
+                    <label>Text Color</label>
+                    <div className="lc-tc-color-row" style={{ marginBottom: 0 }}>
+                        <input
+                            type="color"
+                            value={textStyle.textColor}
+                            onChange={e => onTextStyleChange({ textColor: e.target.value })}
+                        />
+                        <input
+                            type="text"
+                            value={textStyle.textColor}
+                            maxLength={7}
+                            onChange={e => onTextStyleChange({ textColor: e.target.value })}
+                        />
+                        {textStyle.textColor !== '#ffffff' && (
+                            <button className="lc-color-reset-btn" title="Reset to white" onClick={() => onTextStyleChange({ textColor: '#ffffff' })}>
+                                <X size={10} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="lc-field-row">
+                    <label>Label Color</label>
+                    <div className="lc-tc-color-row" style={{ marginBottom: 0 }}>
+                        <input
+                            type="color"
+                            value={textStyle.labelColor}
+                            onChange={e => onTextStyleChange({ labelColor: e.target.value })}
+                        />
+                        <input
+                            type="text"
+                            value={textStyle.labelColor}
+                            maxLength={7}
+                            onChange={e => onTextStyleChange({ labelColor: e.target.value })}
+                        />
+                        {textStyle.labelColor !== '#8cc341' && (
+                            <button className="lc-color-reset-btn" title="Reset to green" onClick={() => onTextStyleChange({ labelColor: '#8cc341' })}>
+                                <X size={10} />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="lc-field-row">
                     <label>Style</label>
                     <div className="lc-style-toggles">
                         <button
-                            className={`lc-style-btn${bold ? ' active' : ''}`}
+                            className={`lc-style-btn${textStyle.bold ? ' active' : ''}`}
                             title="Bold"
-                            onClick={() => setBold(v => !v)}
+                            onClick={() => onTextStyleChange({ bold: !textStyle.bold })}
                         ><Bold /></button>
                         <button
-                            className={`lc-style-btn${italic ? ' active' : ''}`}
+                            className={`lc-style-btn${textStyle.italic ? ' active' : ''}`}
                             title="Italic"
-                            onClick={() => setItalic(v => !v)}
+                            onClick={() => onTextStyleChange({ italic: !textStyle.italic })}
                         ><Italic /></button>
                         <button
-                            className={`lc-style-btn${shadow ? ' active' : ''}`}
+                            className={`lc-style-btn${textStyle.shadow ? ' active' : ''}`}
                             title="Text Shadow"
-                            onClick={() => setShadow(v => !v)}
+                            onClick={() => onTextStyleChange({ shadow: !textStyle.shadow })}
                         ><Layers /></button>
-                    </div>
-                </div>
-
-                <div className="lc-field-row">
-                    <label>Color</label>
-                    <div className="lc-color-swatch">
-                        {COLORS.map(c => (
-                            <div
-                                key={c.value}
-                                className={`lc-swatch${textColor === c.value ? ' active' : ''}`}
-                                style={{ background: c.value }}
-                                title={c.title}
-                                onClick={() => setTextColor(c.value)}
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                <div className="lc-field-row">
-                    <label>Verse # Color</label>
-                    <div className="lc-color-swatch">
-                        {COLORS.map(c => (
-                            <div
-                                key={c.value}
-                                className={`lc-swatch${verseNumColor === c.value ? ' active' : ''}`}
-                                style={{ background: c.value }}
-                                title={c.title}
-                                onClick={() => setVerseNumColor(c.value)}
-                            />
-                        ))}
                     </div>
                 </div>
 
@@ -311,19 +322,19 @@ export default function PropertiesPanel({
                     <label>Align</label>
                     <div className="lc-style-toggles">
                         <button
-                            className={`lc-style-btn${textAlign === 'left' ? ' active' : ''}`}
+                            className={`lc-style-btn${textStyle.textAlign === 'left' ? ' active' : ''}`}
                             title="Left"
-                            onClick={() => setTextAlign('left')}
+                            onClick={() => onTextStyleChange({ textAlign: 'left' })}
                         ><AlignLeft /></button>
                         <button
-                            className={`lc-style-btn${textAlign === 'center' ? ' active' : ''}`}
+                            className={`lc-style-btn${textStyle.textAlign === 'center' ? ' active' : ''}`}
                             title="Center"
-                            onClick={() => setTextAlign('center')}
+                            onClick={() => onTextStyleChange({ textAlign: 'center' })}
                         ><AlignCenter /></button>
                         <button
-                            className={`lc-style-btn${textAlign === 'right' ? ' active' : ''}`}
+                            className={`lc-style-btn${textStyle.textAlign === 'right' ? ' active' : ''}`}
                             title="Right"
-                            onClick={() => setTextAlign('right')}
+                            onClick={() => onTextStyleChange({ textAlign: 'right' })}
                         ><AlignRight /></button>
                     </div>
                 </div>
@@ -332,26 +343,43 @@ export default function PropertiesPanel({
                     <label>Position</label>
                     <div className="lc-style-toggles">
                         <button
-                            className={`lc-style-btn${textPos === 'top' ? ' active' : ''}`}
+                            className={`lc-style-btn${textStyle.textPos === 'top' ? ' active' : ''}`}
                             title="Top"
-                            onClick={() => setTextPos('top')}
+                            onClick={() => onTextStyleChange({ textPos: 'top' })}
                         ><ArrowUp /></button>
                         <button
-                            className={`lc-style-btn${textPos === 'center' ? ' active' : ''}`}
+                            className={`lc-style-btn${textStyle.textPos === 'center' ? ' active' : ''}`}
                             title="Center"
-                            onClick={() => setTextPos('center')}
+                            onClick={() => onTextStyleChange({ textPos: 'center' })}
                         ><AlignJustify /></button>
                         <button
-                            className={`lc-style-btn${textPos === 'bottom' ? ' active' : ''}`}
+                            className={`lc-style-btn${textStyle.textPos === 'bottom' ? ' active' : ''}`}
                             title="Bottom"
-                            onClick={() => setTextPos('bottom')}
+                            onClick={() => onTextStyleChange({ textPos: 'bottom' })}
                         ><ArrowDown /></button>
                     </div>
                 </div>
 
                 <div className="lc-field-row">
                     <label>Spacing</label>
-                    <input type="range" min="1" max="3" step="0.1" defaultValue="1.7" />
+                    <input
+                        type="range" min="1" max="3" step="0.1"
+                        value={textStyle.lineSpacing}
+                        onChange={e => onTextStyleChange({ lineSpacing: Number(e.target.value) })}
+                    />
+                </div>
+
+                <div className="lc-field-row">
+                    <label>Transition</label>
+                    <select
+                        value={textStyle.transition ?? 'fade'}
+                        onChange={e => onTextStyleChange({ transition: e.target.value as TextStyleData['transition'] })}
+                    >
+                        <option value="none">None</option>
+                        <option value="fade">Fade</option>
+                        <option value="zoom">Zoom Fade</option>
+                        <option value="slide">Slide</option>
+                    </select>
                 </div>
             </div>
 

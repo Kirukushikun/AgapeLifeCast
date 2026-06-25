@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { router } from '@inertiajs/react';
-import type { SelectedSong, SavedVerse, MediaFile, SlideDeck, ThemeData } from '@/pages/Console/Index';
+import type { SelectedSong, SavedVerse, MediaFile, SlideDeck, ThemeData, TextStyleData } from '@/pages/Console/Index';
 
 const SLIDE_W = 1280;
 const SLIDE_H = 720;
@@ -33,6 +33,7 @@ function useSlideScale() {
 function useViewportRatio(outputRatio: string) {
     const containerRef = useRef<HTMLDivElement>(null);
     const viewportRef  = useRef<HTMLDivElement>(null);
+    const [vpHeight, setVpHeight] = useState(720);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -48,6 +49,7 @@ function useViewportRatio(outputRatio: string) {
             const vpH = cw / ch > ratio ? ch         : cw / ratio;
             viewport.style.width  = `${vpW}px`;
             viewport.style.height = `${vpH}px`;
+            setVpHeight(vpH);
         };
 
         update();
@@ -56,7 +58,7 @@ function useViewportRatio(outputRatio: string) {
         return () => ro.disconnect();
     }, [outputRatio]);
 
-    return { containerRef, viewportRef };
+    return { containerRef, viewportRef, vpHeight };
 }
 
 type LiveSnapshot =
@@ -70,43 +72,59 @@ interface SlideCanvasProps {
     blank?: boolean;
     songTitle: string;
     theme: { css_bg: string; text_color: string } | null;
+    textStyle: TextStyleData;
     outputRatio: string;
 }
 
-function SlideCanvas({ label, text, blank = false, songTitle, theme, outputRatio }: SlideCanvasProps) {
-    const { containerRef, viewportRef } = useViewportRatio(outputRatio);
+function SlideCanvas({ label, text, blank = false, songTitle, theme, textStyle, outputRatio }: SlideCanvasProps) {
+    const { containerRef, viewportRef, vpHeight } = useViewportRatio(outputRatio);
+    const fontScale   = vpHeight > 0 ? vpHeight / 720 : 1;
     const screenStyle = theme ? { background: theme.css_bg } : { background: '#111' };
-    const textStyle   = theme ? { color: theme.text_color } : {};
+    const contentStyle = {
+        ...screenStyle,
+        justifyContent: textStyle.textPos === 'top' ? 'flex-start' : textStyle.textPos === 'bottom' ? 'flex-end' : 'center',
+    };
+    const lyricStyle: React.CSSProperties = {
+        color:       textStyle.textColor,
+        fontFamily:  textStyle.font,
+        fontSize:    `${Math.round(textStyle.fontSize * fontScale)}px`,
+        fontWeight:  textStyle.bold ? 700 : 400,
+        fontStyle:   textStyle.italic ? 'italic' : 'normal',
+        textShadow:  textStyle.shadow ? '0 2px 8px rgba(0,0,0,0.85)' : 'none',
+        textAlign:   textStyle.textAlign,
+        lineHeight:  textStyle.lineSpacing,
+    };
 
     return (
         <div ref={containerRef} className={`lc-preview-screen${blank ? ' is-blank' : ''}`} style={screenStyle}>
             <div className="lc-screen-ambient" />
             <div ref={viewportRef} className="lc-output-viewport">
-                <div className="lc-slide-content" style={screenStyle}>
-                    {label && <span className="lc-verse-label">{label}</span>}
+                <div className="lc-slide-content" style={contentStyle}>
+                    {label && <span className="lc-verse-label" style={{ color: textStyle.labelColor }}>{label}</span>}
                     <div
                         className="lc-lyric-text"
-                        style={textStyle}
+                        style={lyricStyle}
                         dangerouslySetInnerHTML={{ __html: text.replace(/\n/g, '<br>') }}
                     />
-                    <span className="lc-song-title">{songTitle}</span>
+                    <span className="lc-song-title" style={{ color: textStyle.labelColor }}>{songTitle}</span>
                 </div>
             </div>
         </div>
     );
 }
 
-function SlideThumbnail({ text, theme, active, onClick }: {
+function SlideThumbnail({ text, theme, textStyle: ts, active, onClick }: {
     label: string | null;
     text: string;
     songTitle: string;
     theme: { css_bg: string; text_color: string } | null;
+    textStyle: TextStyleData;
     active: boolean;
     onClick: () => void;
 }) {
     const { outerRef, innerRef } = useSlideScale();
     const bgStyle   = theme ? { background: theme.css_bg } : {};
-    const textStyle = theme ? { color: theme.text_color } : {};
+    const textStyle = { color: ts.textColor };
 
     return (
         <div
@@ -150,22 +168,22 @@ function DeckSlideScreen({ url, alt, outputRatio }: { url: string; alt: string; 
     );
 }
 
-function renderLiveScreen(snapshot: LiveSnapshot, liveMedia: MediaFile | null, isBlank: boolean, liveMediaKey: number, blankTheme: ThemeData | null, outputRatio: string) {
-    if (isBlank)    return <SlideCanvas label={null} text="" blank songTitle="" theme={blankTheme} outputRatio={outputRatio} />;
+function renderLiveScreen(snapshot: LiveSnapshot, liveMedia: MediaFile | null, isBlank: boolean, liveMediaKey: number, blankTheme: ThemeData | null, outputRatio: string, textStyle: TextStyleData) {
+    if (isBlank)    return <SlideCanvas label={null} text="" blank songTitle="" theme={blankTheme} textStyle={textStyle} outputRatio={outputRatio} />;
     if (liveMedia)  return <MediaScreen key={liveMediaKey} file={liveMedia} outputRatio={outputRatio} />;
     if (!snapshot)  return <div className="lc-preview-screen is-blank" />;
 
     if (snapshot.kind === 'verse') {
         const { verse } = snapshot;
-        return <SlideCanvas label={verse.reference} text={verse.content} blank={isBlank} songTitle={verse.translation} theme={verse.theme} outputRatio={outputRatio} />;
+        return <SlideCanvas label={verse.reference} text={verse.content} blank={isBlank} songTitle={verse.translation} theme={verse.theme} textStyle={textStyle} outputRatio={outputRatio} />;
     }
 
     const slide = snapshot.song.slides[snapshot.slideIdx];
     if (!slide) return <div className="lc-preview-screen is-blank" />;
-    return <SlideCanvas label={slide.label} text={slide.content} blank={isBlank} songTitle={snapshot.song.title} theme={snapshot.song.theme} outputRatio={outputRatio} />;
+    return <SlideCanvas label={slide.label} text={slide.content} blank={isBlank} songTitle={snapshot.song.title} theme={snapshot.song.theme} textStyle={textStyle} outputRatio={outputRatio} />;
 }
 
-export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck, volume, onVolumeChange, hasActiveAudio, liveMedia, liveMediaKey, onMediaLive, blankTheme, outputRatio }: {
+export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck, volume, onVolumeChange, hasActiveAudio, liveMedia, liveMediaKey, onMediaLive, blankTheme, outputRatio, textStyle }: {
     selectedSong: SelectedSong | null;
     selectedVerse: SavedVerse | null;
     selectedDeck: SlideDeck | null;
@@ -177,6 +195,7 @@ export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck,
     onMediaLive: (file: MediaFile | null) => void;
     blankTheme: ThemeData | null;
     outputRatio: string;
+    textStyle: TextStyleData;
 }) {
     const slides = selectedSong?.slides ?? [];
 
@@ -191,22 +210,23 @@ export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck,
     // ── Live window broadcast ──
     const channelRef   = useRef<BroadcastChannel | null>(null);
     const buildMessage = useCallback(() => {
+        const ts = textStyle;
         if (isBlank) {
-            return { type: 'state', content: { kind: 'slide', label: null, text: '', songTitle: '', theme: blankTheme ? { css_bg: blankTheme.css_bg, text_color: blankTheme.text_color } : null, blank: true }, outputRatio };
+            return { type: 'state', content: { kind: 'slide', label: null, text: '', songTitle: '', theme: blankTheme ? { css_bg: blankTheme.css_bg, text_color: blankTheme.text_color } : null, blank: true, textStyle: ts }, outputRatio };
         }
         if (liveMedia) {
             return { type: 'state', content: { kind: 'media', url: liveMedia.url, title: liveMedia.title }, outputRatio };
         }
         if (liveSnapshot?.kind === 'verse') {
             const { verse } = liveSnapshot;
-            return { type: 'state', content: { kind: 'slide', label: verse.reference, text: verse.content, songTitle: verse.translation, theme: null, blank: false }, outputRatio };
+            return { type: 'state', content: { kind: 'slide', label: verse.reference, text: verse.content, songTitle: verse.translation, theme: verse.theme, blank: false, textStyle: ts }, outputRatio };
         }
         if (liveSnapshot?.kind === 'slide') {
             const slide = liveSnapshot.song.slides[liveSnapshot.slideIdx];
-            return { type: 'state', content: slide ? { kind: 'slide', label: slide.label, text: slide.content, songTitle: liveSnapshot.song.title, theme: liveSnapshot.song.theme, blank: false } : null, outputRatio };
+            return { type: 'state', content: slide ? { kind: 'slide', label: slide.label, text: slide.content, songTitle: liveSnapshot.song.title, theme: liveSnapshot.song.theme, blank: false, textStyle: ts } : null, outputRatio };
         }
         return { type: 'state', content: null, outputRatio };
-    }, [isBlank, liveMedia, liveSnapshot, outputRatio, blankTheme]);
+    }, [isBlank, liveMedia, liveSnapshot, outputRatio, blankTheme, textStyle]);
 
     useEffect(() => {
         const ch = new BroadcastChannel('lifecast-live');
@@ -334,9 +354,9 @@ export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck,
         const ds = selectedDeck!.slides[activeDeckSlide];
         previewScreen = <DeckSlideScreen url={ds.url} alt={`Slide ${ds.sort_order}`} outputRatio={outputRatio} />;
     } else if (selectedVerse) {
-        previewScreen = <SlideCanvas label={verseLabel} text={verseText} songTitle={verseMeta} theme={selectedVerse.theme} outputRatio={outputRatio} />;
+        previewScreen = <SlideCanvas label={verseLabel} text={verseText} songTitle={verseMeta} theme={selectedVerse.theme} textStyle={textStyle} outputRatio={outputRatio} />;
     } else if (previewSlide) {
-        previewScreen = <SlideCanvas label={previewSlide.label} text={previewSlide.content} songTitle={songTitle} theme={theme} outputRatio={outputRatio} />;
+        previewScreen = <SlideCanvas label={previewSlide.label} text={previewSlide.content} songTitle={songTitle} theme={theme} textStyle={textStyle} outputRatio={outputRatio} />;
     } else {
         previewScreen = <div className="lc-preview-screen is-blank" />;
     }
@@ -350,7 +370,11 @@ export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck,
                     className={`lc-slide-thumb lc-slide-thumb-img${activeDeckSlide === idx ? ' active' : ''}`}
                     onClick={() => handleDeckSlideClick(idx)}
                 >
-                    <img src={slide.url} alt={`Slide ${slide.sort_order}`} />
+                    <img
+                        src={slide.url}
+                        alt={`Slide ${slide.sort_order}`}
+                        onLoad={e => (e.currentTarget.parentElement as HTMLElement)?.classList.add('loaded')}
+                    />
                 </div>
                 <div className="lc-slide-label">{slide.sort_order}</div>
             </div>
@@ -363,6 +387,7 @@ export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck,
                     text={verseText}
                     songTitle={verseMeta}
                     theme={selectedVerse.theme}
+                    textStyle={textStyle}
                     active={true}
                     onClick={() => {}}
                 />
@@ -377,6 +402,7 @@ export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck,
                     text={slide.content}
                     songTitle={songTitle}
                     theme={theme}
+                    textStyle={textStyle}
                     active={activeThumb === idx}
                     onClick={() => handleThumbClick(idx)}
                 />
@@ -453,7 +479,7 @@ export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck,
                                 {isOnAir ? 'ON AIR' : 'OFFLINE'}
                             </span>
                         </div>
-                        {renderLiveScreen(liveSnapshot, liveMedia, isBlank, liveMediaKey, blankTheme, outputRatio)}
+                        {renderLiveScreen(liveSnapshot, liveMedia, isBlank, liveMediaKey, blankTheme, outputRatio, textStyle)}
                     </div>
 
                 </div>
