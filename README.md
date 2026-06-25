@@ -169,6 +169,53 @@ Then serve through Laragon's Apache (point a virtual host at the `public/` folde
 
 ---
 
+## 11. One-Click Launcher for Operators
+
+Two `.cmd` files are included in the project root so non-technical operators can run the app without touching a terminal.
+
+### `lifecast-build.cmd` — Developer only
+
+Run this **after any code change** to compile the frontend assets into static files.
+Operators never need to run this.
+
+```
+double-click  lifecast-build.cmd
+```
+
+What it does: runs `npm run build` and tells you when it's done.
+
+---
+
+### `lifecast-start.cmd` — Operators run this daily
+
+```
+double-click  lifecast-start.cmd
+```
+
+What it does, in order:
+
+1. Starts Laragon (database) if it isn't already running
+2. Opens a minimized **Lifecast Web Server** window (`php artisan serve`)
+3. Opens a minimized **Lifecast Worker** window (`php artisan queue:work`)
+4. Waits 4 seconds for the server to boot
+5. Opens `http://localhost:8000` in the default browser
+
+> **Important:** Two minimized windows will appear in the taskbar. Do **not** close them — they keep the app running. Minimize them if they're in the way.
+
+To stop the app completely, close all three windows (the launcher window + the two minimized ones).
+
+---
+
+### Optional: Auto-start Laragon on Windows login
+
+If Laragon starts automatically with Windows, the launcher skips step 1 and opens the browser even faster.
+
+1. Open Laragon
+2. Right-click the tray icon → **Auto Start**
+3. Enable **Auto Start on System Startup**
+
+---
+
 ## How the Queue Worker is Used
 
 The queue worker (`php artisan queue:listen`) is required for **PDF slide conversion**. When you upload a PDF in the Slides tab, GhostScript runs in the background to convert each page to a PNG image. The deck shows `processing` status until the job finishes, then switches to `ready` with thumbnails.
