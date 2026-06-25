@@ -213,9 +213,14 @@ class ConsoleController extends Controller
             'translation' => $v->translation,
             'testament'   => $v->testament,
             'content'     => $v->content,
+            'theme_id'    => $v->theme_id,
+            'theme'       => $v->theme ? [
+                'css_bg'     => $v->theme->css_background,
+                'text_color' => $v->theme->text_color,
+            ] : null,
         ];
 
-        $verseFolders = VerseFolder::with(['verses' => fn ($q) => $q->orderBy('testament')->orderBy('reference')])
+        $verseFolders = VerseFolder::with(['verses' => fn ($q) => $q->with('theme')->orderBy('testament')->orderBy('reference')])
             ->orderBy('sort_order')
             ->get()
             ->map(fn ($f) => [
@@ -224,7 +229,7 @@ class ConsoleController extends Controller
                 'verses' => $f->verses->map($verseMapFn),
             ]);
 
-        $savedVerses = SavedVerse::whereNull('folder_id')
+        $savedVerses = SavedVerse::whereNull('folder_id')->with('theme')
             ->orderBy('testament')->orderBy('reference')
             ->get()->map($verseMapFn);
 

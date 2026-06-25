@@ -6,16 +6,19 @@ use App\Http\Controllers\Console\MediaController;
 use App\Http\Controllers\Console\ScheduleController;
 use App\Http\Controllers\Console\SlideDeckController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::redirect('/', '/login')->name('home');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/console', [ConsoleController::class, 'index'])->name('console.index');
+    Route::get('/live',    fn () => Inertia::render('Live'))->name('live');
     Route::post('/console/folders',           [ConsoleController::class, 'storeFolder'])->name('console.folders.store');
     Route::patch('/console/folders/{folder}', [ConsoleController::class, 'updateFolder'])->name('console.folders.update');
     Route::delete('/console/folders/{folder}',[ConsoleController::class, 'destroyFolder'])->name('console.folders.destroy');
     Route::get('/console/bible/search',                  [BibleController::class, 'search'])->name('console.bible.search');
     Route::post('/console/bible',                        [BibleController::class, 'store'])->name('console.bible.store');
+    Route::patch('/console/bible/{verse}/theme',         [BibleController::class, 'updateTheme'])->name('console.bible.theme');
     Route::patch('/console/bible/{verse}/move',          [BibleController::class, 'moveVerse'])->name('console.bible.move');
     Route::delete('/console/bible/{verse}',              [BibleController::class, 'destroy'])->name('console.bible.destroy');
     Route::post('/console/verse-folders',                [BibleController::class, 'storeFolder'])->name('console.verse-folders.store');

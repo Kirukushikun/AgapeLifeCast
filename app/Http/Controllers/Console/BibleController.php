@@ -171,6 +171,13 @@ class BibleController extends Controller
         return redirect()->route('console.index');
     }
 
+    public function updateTheme(Request $request, SavedVerse $verse): RedirectResponse
+    {
+        $request->validate(['theme_id' => 'nullable|exists:themes,id']);
+        $verse->update(['theme_id' => $request->theme_id ?? null]);
+        return redirect()->route('console.index');
+    }
+
     public function moveVerse(Request $request, SavedVerse $verse): RedirectResponse
     {
         $request->validate(['folder_id' => 'nullable|exists:verse_folders,id']);

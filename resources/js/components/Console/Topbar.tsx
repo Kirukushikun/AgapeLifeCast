@@ -31,7 +31,10 @@ export default function Topbar() {
             <div className="lc-spacer" />
 
             <div className="lc-actions">
-                <button className="lc-btn-open-live">
+                <button
+                    className="lc-btn-open-live"
+                    onClick={() => window.open('/live', 'lifecast-live-window')}
+                >
                     <span className="lc-live-dot" />
                     Open Live Window
                 </button>

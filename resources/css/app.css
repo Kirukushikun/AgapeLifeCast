@@ -993,7 +993,7 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
     box-shadow: 0 4px 24px rgba(229,57,53,.35) !important;
 }
 
-/* Screen canvas */
+/* Screen canvas — fills its column, ambient covers the full area */
 .lc-preview-screen {
     flex: 1;
     min-height: 0;
@@ -1005,6 +1005,14 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
     position: relative;
     overflow: hidden;
     transition: box-shadow .2s, border-color .2s;
+}
+
+/* Output viewport — JS sets explicit width/height based on outputRatio.
+   Transparent so the ambient behind shows through letterbox/pillarbox bars. */
+.lc-output-viewport {
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
 }
 /* Media content inside a preview screen — 16:9 box + blurred ambient */
 .lc-media-screen { background: #060606; }
@@ -1031,11 +1039,11 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
     z-index: 1;
     overflow: hidden;
     flex-shrink: 0;
-    background: #000;
+    background: transparent;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 0 40px rgba(0,0,0,.6);
 }
 
-/* Image / video: contain = full media always visible, letterbox bars are black */
+/* Image / video: contain = full media always visible, ambient shows through letterbox/pillarbox bars */
 .lc-media-slide .lc-media-img,
 .lc-media-slide .lc-media-video {
     position: absolute;
@@ -1070,8 +1078,30 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
     position: absolute;
     inset: -40px;
     background: inherit;
-    filter: blur(40px) brightness(0.22) saturate(0.6);
+    filter: blur(28px) brightness(0.6) saturate(1.4);
     z-index: 0;
+    pointer-events: none;
+}
+
+/* Responsive slide container for songs & bible — fills the ratio viewport exactly */
+.lc-slide-content {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 5%;
+    box-sizing: border-box;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), 0 0 60px rgba(0,0,0,.75);
+}
+.lc-slide-content::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, rgba(140,195,65,.08) 0%, transparent 70%);
     pointer-events: none;
 }
 
@@ -1154,6 +1184,7 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
 .lc-preview-screen.is-blank .lc-lyric-text,
 .lc-preview-screen.is-blank .lc-verse-label,
 .lc-preview-screen.is-blank .lc-song-title { opacity: 0; }
+.lc-preview-screen.is-blank .lc-slide-content::after,
 .lc-preview-screen.is-blank .lc-screen-slide::after {
     content: 'BLANK';
     position: absolute;
@@ -1161,6 +1192,17 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
     font-size: .75rem;
     font-weight: 700;
     letter-spacing: 3px;
+}
+
+/* ── Live output window (full-screen display page) ── */
+.lc-live-output {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
 /* Controls row */
@@ -1538,7 +1580,7 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
     align-items: center;
     justify-content: center;
     transition: all .15s;
-    line-height: 0;
+    line-height: 1;
 }
 .lc-style-btn svg { width: 13px; height: 13px; }
 .lc-style-btn:hover:not(.active) { border-color: var(--lc-green); color: var(--lc-green); }

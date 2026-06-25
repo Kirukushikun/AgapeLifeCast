@@ -23,6 +23,13 @@ const COLORS = [
     { value: '#cccccc', title: 'Gray'        },
 ];
 
+const RATIOS: { label: string; value: string }[] = [
+    { label: '16:9', value: '16/9' },
+    { label: '4:3',  value: '4/3'  },
+    { label: '1:1',  value: '1/1'  },
+    { label: '9:16', value: '9/16' },
+];
+
 export default function PropertiesPanel({
     schedule, themes, selectedSong, selectedVerse, selectedDeck,
     songFolders, uncategorizedSongs,
@@ -30,7 +37,10 @@ export default function PropertiesPanel({
     mediaFolders, uncategorizedMedia,
     slideDeckFolders, uncategorizedDecks,
     presets,
+    outputRatio,
+    onRatioChange,
     onScheduleItemClick,
+    onVerseThemeChange,
 }: {
     schedule: ScheduleData | null;
     themes: ThemeData[];
@@ -46,7 +56,10 @@ export default function PropertiesPanel({
     slideDeckFolders: SlideDeckFolder[];
     uncategorizedDecks: SlideDeck[];
     presets: SchedulePreset[];
+    outputRatio: string;
+    onRatioChange: (ratio: string) => void;
     onScheduleItemClick: (type: string, schedulableId: number) => void;
+    onVerseThemeChange: (themeId: number | null, theme: { css_bg: string; text_color: string } | null) => void;
 }) {
     const [presetOpen, setPresetOpen]           = useState(false);
     const [addModalOpen, setAddModalOpen]       = useState(false);
@@ -350,11 +363,22 @@ export default function PropertiesPanel({
                     {themes.map(theme => (
                         <div
                             key={theme.id}
-                            className={`lc-theme-card${selectedSong?.theme_id === theme.id ? ' active' : ''}`}
+                            className={`lc-theme-card${
+                                (selectedVerse ? selectedVerse.theme_id : selectedSong?.theme_id) === theme.id
+                                    ? ' active' : ''
+                            }`}
                             style={{ background: theme.css_bg }}
                             onClick={() => {
-                                if (!selectedSong) return;
-                                router.patch(`/console/songs/${selectedSong.id}/theme`, { theme_id: theme.id });
+                                if (selectedVerse) {
+                                    onVerseThemeChange(theme.id, { css_bg: theme.css_bg, text_color: theme.text_color });
+                                    router.patch(`/console/bible/${selectedVerse.id}/theme`, { theme_id: theme.id }, {
+                                        preserveState: true, preserveScroll: true,
+                                    });
+                                } else if (selectedSong) {
+                                    router.patch(`/console/songs/${selectedSong.id}/theme`, { theme_id: theme.id }, {
+                                        preserveState: true, preserveScroll: true, only: ['selectedSong'],
+                                    });
+                                }
                             }}
                             onContextMenu={e => {
                                 e.preventDefault();
@@ -375,10 +399,21 @@ export default function PropertiesPanel({
                     </button>
                 </div>
 
-                {selectedSong?.theme_id && (
+                {(selectedVerse ? selectedVerse.theme_id : selectedSong?.theme_id) && (
                     <button
                         className="lc-theme-clear-btn"
-                        onClick={() => router.patch(`/console/songs/${selectedSong.id}/theme`, { theme_id: null })}
+                        onClick={() => {
+                            if (selectedVerse) {
+                                onVerseThemeChange(null, null);
+                                router.patch(`/console/bible/${selectedVerse.id}/theme`, { theme_id: null }, {
+                                    preserveState: true, preserveScroll: true,
+                                });
+                            } else if (selectedSong) {
+                                router.patch(`/console/songs/${selectedSong.id}/theme`, { theme_id: null }, {
+                                    preserveState: true, preserveScroll: true, only: ['selectedSong'],
+                                });
+                            }
+                        }}
                     >
                         Clear theme
                     </button>
@@ -493,12 +528,18 @@ export default function PropertiesPanel({
             <div className="lc-panel-section">
                 <h4>Output</h4>
                 <div className="lc-field-row">
-                    <label>Resolution</label>
-                    <select>
-                        <option>1920×1080</option>
-                        <option>1280×720</option>
-                        <option>3840×2160</option>
-                    </select>
+                    <label>Aspect Ratio</label>
+                    <div className="lc-style-toggles">
+                        {RATIOS.map(r => (
+                            <button
+                                key={r.value}
+                                className={`lc-style-btn${outputRatio === r.value ? ' active' : ''}`}
+                                onClick={() => onRatioChange(r.value)}
+                            >
+                                {r.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 

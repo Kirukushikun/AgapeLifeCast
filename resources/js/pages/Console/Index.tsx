@@ -24,6 +24,8 @@ export interface SavedVerse {
     translation: string;
     testament: 'old' | 'new';
     content: string;
+    theme_id: number | null;
+    theme: { css_bg: string; text_color: string } | null;
 }
 
 export interface VerseFolder {
@@ -138,6 +140,7 @@ interface Props {
 export default function Index({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDeckFolders, uncategorizedDecks, schedule, themes, selectedSong, presets }: Props) {
     const [selectedVerse, setSelectedVerse]       = useState<SavedVerse | null>(null);
     const [selectedDeck, setSelectedDeck]         = useState<SlideDeck | null>(null);
+    const [outputRatio, setOutputRatio]           = useState('16/9');
     const [volume, setVolume]                     = useState(0.8);
     const [hasActiveAudio, setHasActiveAudio]     = useState(false);
     const [liveMedia, setLiveMedia]       = useState<MediaFile | null>(null);
@@ -150,6 +153,11 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
     };
 
     const handleVerseSelect = (verse: SavedVerse) => { setSelectedVerse(verse); setSelectedDeck(null); };
+
+    const handleVerseThemeChange = (themeId: number | null, theme: { css_bg: string; text_color: string } | null) => {
+        if (!selectedVerse) return;
+        setSelectedVerse({ ...selectedVerse, theme_id: themeId, theme });
+    };
     const handleSongSelect  = () => { setSelectedVerse(null); setSelectedDeck(null); };
     const handleDeckSelect  = (deck: SlideDeck | null) => { setSelectedDeck(deck); setSelectedVerse(null); };
 
@@ -212,6 +220,7 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
                     liveMediaKey={liveMediaKey}
                     onMediaLive={handleMediaLive}
                     blankTheme={blankTheme}
+                    outputRatio={outputRatio}
                 />
                 <PropertiesPanel
                     schedule={schedule}
@@ -228,7 +237,10 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
                     slideDeckFolders={slideDeckFolders}
                     uncategorizedDecks={uncategorizedDecks}
                     presets={presets}
+                    outputRatio={outputRatio}
+                    onRatioChange={setOutputRatio}
                     onScheduleItemClick={handleScheduleItemClick}
+                    onVerseThemeChange={handleVerseThemeChange}
                 />
             </div>
         </div>
