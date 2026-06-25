@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { router } from '@inertiajs/react';
 import type { SelectedSong, SavedVerse, MediaFile, SlideDeck, ThemeData } from '@/pages/Console/Index';
 
 const SLIDE_W = 1280;
@@ -155,6 +156,13 @@ export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck,
     const [liveSnapshot, setLiveSnapshot]     = useState<LiveSnapshot>(null);
     const [liveClick, setLiveClick]           = useState(false);
     const [isBlank, setIsBlank]               = useState(false);
+    const [navigating, setNavigating]         = useState(false);
+
+    useEffect(() => {
+        const offStart  = router.on('start',  () => setNavigating(true));
+        const offFinish = router.on('finish', () => setNavigating(false));
+        return () => { offStart(); offFinish(); };
+    }, []);
 
     const isOnAir = !!liveMedia || !!liveSnapshot;
 
@@ -339,7 +347,15 @@ export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck,
 
             {showSlideList && (
                 <div className="lc-slide-list">
-                    {slideList}
+                    {navigating
+                        ? (slides.length > 0 ? slides : Array(3).fill(null)).map((_, i) => (
+                            <div key={i}>
+                                <div className="lc-skel-thumb" />
+                                <div className="lc-skel-label" />
+                            </div>
+                        ))
+                        : slideList
+                    }
                 </div>
             )}
 

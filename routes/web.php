@@ -44,6 +44,11 @@ Route::middleware(['auth'])->group(function () {
     // Schedule Items
     Route::post('/console/schedule-items',                  [ScheduleController::class, 'store'])->name('console.schedule-items.store');
     Route::delete('/console/schedule-items/{scheduleItem}', [ScheduleController::class, 'destroy'])->name('console.schedule-items.destroy');
+    Route::delete('/console/schedule',                      [ScheduleController::class, 'clearSchedule'])->name('console.schedule.clear');
+    // Schedule Presets
+    Route::post('/console/schedule-presets',                      [ScheduleController::class, 'storePreset'])->name('console.schedule-presets.store');
+    Route::post('/console/schedule-presets/{preset}/load',        [ScheduleController::class, 'loadPreset'])->name('console.schedule-presets.load');
+    Route::delete('/console/schedule-presets/{preset}',           [ScheduleController::class, 'destroyPreset'])->name('console.schedule-presets.destroy');
 
     Route::post('/console/songs',                    [ConsoleController::class, 'storeSong'])->name('console.songs.store');
     Route::patch('/console/songs/{song}',            [ConsoleController::class, 'updateSong'])->name('console.songs.update');

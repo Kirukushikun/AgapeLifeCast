@@ -86,6 +86,8 @@ BIBLE_GNT_ID=61fd76eafa1577c2-02
 
 > **GhostScript path:** Use forward slashes `/` not backslashes `\`. Backslashes cause a dotenv parse error.
 
+> **APP_URL must match your actual URL.** Image URLs are built from `APP_URL`. If you run the app via `composer dev` / `php artisan serve`, use `http://localhost:8000`. If you access it through a Laragon virtual host (e.g. `http://agape-lifecast.test`), use that URL instead. A mismatch makes all uploaded images appear black even after `storage:link`.
+
 > **Bible API:** Register a free account at [scripture.api.bible](https://scripture.api.bible), create an app, copy the API key. The Bible IDs above are already correct for NIV, Tagalog (TCB), and Good News Translation (GNT).
 
 ---
@@ -201,6 +203,11 @@ If you restart the computer, you need to restart `composer dev` (or the queue li
 
 **Images / uploaded files return 404**
 - Run `php artisan storage:link` — the symlink from `public/storage` to `storage/app/public` is missing
+
+**Images show as black / broken even after running `storage:link`**
+- Check `APP_URL` in `.env` — it must match the URL you actually use in the browser. Right-click a broken image → Inspect → check the `src` URL. If the host is wrong, fix `APP_URL` and run `php artisan config:clear`
+- On Windows, symlink creation requires admin privileges or Developer Mode enabled. If the link silently failed, open a terminal **as Administrator** and re-run `php artisan storage:link`
+- On a fresh clone, the database has records but `storage/app/public/` is empty — no files were ever uploaded to this machine. Copy that folder from the original PC or re-upload the files
 
 **"SQLSTATE: no such table" errors**
 - Run `php artisan migrate`

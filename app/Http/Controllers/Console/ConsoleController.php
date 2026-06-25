@@ -12,6 +12,7 @@ use App\Models\SlideDeck;
 use App\Models\SlideDeckFolder;
 use App\Models\Song;
 use App\Models\SongFolder;
+use App\Models\SchedulePreset;
 use App\Models\Theme;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -355,6 +356,12 @@ class ConsoleController extends Controller
             ] : null,
         ] : null;
 
+        $presets = SchedulePreset::orderBy('name')->get()->map(fn ($p) => [
+            'id'    => $p->id,
+            'name'  => $p->name,
+            'count' => count($p->items),
+        ]);
+
         return Inertia::render('Console/Index', [
             'songFolders'        => $songFolders,
             'uncategorizedSongs' => $uncategorizedSongs,
@@ -367,6 +374,7 @@ class ConsoleController extends Controller
             'schedule'     => $schedule,
             'themes'       => $themes,
             'selectedSong' => $selectedSong,
+            'presets'      => $presets,
         ]);
     }
 }

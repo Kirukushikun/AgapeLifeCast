@@ -6,8 +6,9 @@ import {
     ChevronDown, Plus, ClipboardList, X,
 } from 'lucide-react';
 import AddScheduleItemModal from '@/components/Console/AddScheduleItemModal';
+import NameInputModal from '@/components/Console/NameInputModal';
 import type {
-    ScheduleData, ThemeData, SelectedSong,
+    ScheduleData, ThemeData, SelectedSong, SchedulePreset,
     SongFolder, SongItem, VerseFolder, SavedVerse,
     MediaFolder, MediaFile, SlideDeckFolder, SlideDeck,
 } from '@/pages/Console/Index';
@@ -28,6 +29,7 @@ export default function PropertiesPanel({
     verseFolders, savedVerses,
     mediaFolders, uncategorizedMedia,
     slideDeckFolders, uncategorizedDecks,
+    presets,
     onScheduleItemClick,
 }: {
     schedule: ScheduleData | null;
@@ -43,10 +45,13 @@ export default function PropertiesPanel({
     uncategorizedMedia: MediaFile[];
     slideDeckFolders: SlideDeckFolder[];
     uncategorizedDecks: SlideDeck[];
+    presets: SchedulePreset[];
     onScheduleItemClick: (type: string, schedulableId: number) => void;
 }) {
     const [presetOpen, setPresetOpen]           = useState(false);
     const [addModalOpen, setAddModalOpen]       = useState(false);
+    const [savePresetOpen, setSavePresetOpen]   = useState(false);
+    const [renameTheme, setRenameTheme]         = useState<ThemeData | null>(null);
     const [ctxTheme, setCtxTheme]               = useState<ThemeData | null>(null);
     const [ctxPos, setCtxPos]                   = useState({ x: 0, y: 0 });
 
@@ -122,10 +127,64 @@ export default function PropertiesPanel({
                             </button>
                             <div className={`lc-preset-panel${presetOpen ? ' open' : ''}`}>
                                 <div className="lc-preset-panel-header">Saved Presets</div>
-                                <div className="lc-preset-empty">No saved presets yet.</div>
+                                {presets.length === 0 ? (
+                                    <div className="lc-preset-empty">No saved presets yet.</div>
+                                ) : (
+                                    presets.map(preset => (
+                                        <div key={preset.id} className="lc-preset-item">
+                                            <div className="lc-preset-info">
+                                                <div className="lc-preset-name">{preset.name}</div>
+                                                <div className="lc-preset-count">{preset.count} items</div>
+                                            </div>
+                                            <div className="lc-preset-item-actions">
+                                                <button
+                                                    className="lc-preset-load-btn"
+                                                    onClick={e => {
+                                                        e.stopPropagation();
+                                                        router.post(`/console/schedule-presets/${preset.id}/load`, {}, {
+                                                            onSuccess: () => setPresetOpen(false),
+                                                        });
+                                                    }}
+                                                >
+                                                    Load
+                                                </button>
+                                                <button
+                                                    className="lc-preset-delete-btn"
+                                                    title="Delete preset"
+                                                    onClick={e => {
+                                                        e.stopPropagation();
+                                                        router.delete(`/console/schedule-presets/${preset.id}`);
+                                                    }}
+                                                >
+                                                    <X size={10} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                                 <div className="lc-preset-footer">
-                                    <button className="lc-preset-footer-btn">Save current</button>
-                                    <button className="lc-preset-footer-btn danger">Start empty</button>
+                                    <button
+                                        className="lc-preset-footer-btn"
+                                        onClick={e => {
+                                            e.stopPropagation();
+                                            if ((schedule?.items ?? []).length === 0) return;
+                                            setPresetOpen(false);
+                                            setSavePresetOpen(true);
+                                        }}
+                                    >
+                                        Save current
+                                    </button>
+                                    <button
+                                        className="lc-preset-footer-btn danger"
+                                        onClick={e => {
+                                            e.stopPropagation();
+                                            router.delete('/console/schedule', {
+                                                onSuccess: () => setPresetOpen(false),
+                                            });
+                                        }}
+                                    >
+                                        Start empty
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -443,6 +502,35 @@ export default function PropertiesPanel({
                 </div>
             </div>
 
+            {savePresetOpen && (
+                <NameInputModal
+                    title="Save Preset"
+                    label="Preset name"
+                    placeholder="e.g. Sunday Morning Service"
+                    confirmLabel="Save"
+                    onConfirm={name => {
+                        router.post('/console/schedule-presets', { name }, {
+                            onSuccess: () => setSavePresetOpen(false),
+                        });
+                    }}
+                    onClose={() => setSavePresetOpen(false)}
+                />
+            )}
+
+            {renameTheme && (
+                <NameInputModal
+                    title="Rename Theme"
+                    label="Theme name"
+                    initialValue={renameTheme.name}
+                    confirmLabel="Rename"
+                    onConfirm={name => {
+                        router.patch(`/console/themes/${renameTheme.id}`, { name });
+                        setRenameTheme(null);
+                    }}
+                    onClose={() => setRenameTheme(null)}
+                />
+            )}
+
             {addModalOpen && (
                 <AddScheduleItemModal
                     songFolders={songFolders}
@@ -474,8 +562,7 @@ export default function PropertiesPanel({
                         <div
                             className="lc-theme-ctx-item"
                             onClick={() => {
-                                const n = prompt('Rename theme:', ctxTheme.name);
-                                if (n?.trim()) router.patch(`/console/themes/${ctxTheme.id}`, { name: n.trim() });
+                                setRenameTheme(ctxTheme);
                                 setCtxTheme(null);
                             }}
                         >

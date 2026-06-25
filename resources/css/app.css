@@ -298,6 +298,9 @@ html.dark ::-webkit-scrollbar-thumb:hover { background: #8cc341; }
 
     --lc-sidebar-w: 280px;
     --lc-panel-w:   320px;
+
+    --lc-skel-base:  #e8e8e8;
+    --lc-skel-shine: #f8f8f8;
 }
 
 html.dark {
@@ -308,6 +311,9 @@ html.dark {
     --lc-text-primary:   #e8e8e8;
     --lc-text-secondary: #9aa0ad;
     --lc-text-muted:     #555b66;
+
+    --lc-skel-base:  #1f2228;
+    --lc-skel-shine: #2e3138;
 }
 
 /* ─────────────────────────────────────────────
@@ -857,6 +863,28 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
 .lc-slide-thumb span { position: relative; z-index: 1; }
 .lc-slide-thumb:hover { border-color: var(--lc-green-light); }
 .lc-slide-thumb.active { border-color: var(--lc-green); }
+
+/* Skeleton shimmer */
+@keyframes lc-shimmer {
+    0%   { background-position: 200% center; }
+    100% { background-position: -200% center; }
+}
+.lc-skel-thumb {
+    aspect-ratio: 16/9;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--lc-skel-base) 25%, var(--lc-skel-shine) 50%, var(--lc-skel-base) 75%);
+    background-size: 200% 100%;
+    animation: lc-shimmer 1.3s ease-in-out infinite;
+}
+.lc-skel-label {
+    height: 8px;
+    border-radius: 4px;
+    margin: 4px 6px 0;
+    width: 55%;
+    background: linear-gradient(90deg, var(--lc-skel-base) 25%, var(--lc-skel-shine) 50%, var(--lc-skel-base) 75%);
+    background-size: 200% 100%;
+    animation: lc-shimmer 1.3s ease-in-out infinite;
+}
 
 /* Image thumbnail variant for slide decks */
 .lc-slide-thumb.lc-slide-thumb-img {
@@ -1410,6 +1438,29 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
 }
 .lc-preset-footer-btn:hover { border-color: var(--lc-green); color: var(--lc-green); background: var(--lc-bg-panel-alt); }
 .lc-preset-footer-btn.danger:hover { border-color: #e53935; color: #e53935; background: rgba(229,57,53,.06); }
+
+.lc-preset-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--lc-border);
+}
+.lc-preset-item:hover { background: var(--lc-bg-panel-alt); }
+.lc-preset-info { flex: 1; min-width: 0; }
+.lc-preset-name { font-size: .82rem; font-weight: 600; color: var(--lc-text-primary); font-family: 'Poppins', sans-serif; }
+.lc-preset-count { font-size: .7rem; color: var(--lc-text-muted); margin-top: 1px; font-family: 'Poppins', sans-serif; }
+.lc-preset-item-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.lc-preset-load-btn {
+    padding: 3px 9px; border-radius: 4px; border: 1px solid var(--lc-border);
+    background: transparent; color: var(--lc-text-secondary); font-size: .72rem;
+    cursor: pointer; font-family: 'Poppins', sans-serif; transition: all .15s;
+}
+.lc-preset-load-btn:hover { background: var(--lc-green); color: #fff; border-color: var(--lc-green); }
+.lc-preset-delete-btn {
+    width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; border: 1px solid var(--lc-border); background: transparent;
+    color: var(--lc-text-muted); cursor: pointer; transition: all .15s;
+}
+.lc-preset-delete-btn:hover { border-color: #e53935; color: #e53935; background: rgba(229,57,53,.07); }
 
 /* ── Properties ── */
 .lc-panel-header {

@@ -2367,6 +2367,15 @@
           <option>3840×2160</option>
         </select>
       </div>
+      <div class="field-row">
+        <label>Aspect Ratio</label>
+        <div class="style-toggles" id="aspect-ratio-btns">
+          <button class="style-toggle-btn active" data-ratio="16/9">16:9</button>
+          <button class="style-toggle-btn"        data-ratio="4/3">4:3</button>
+          <button class="style-toggle-btn"        data-ratio="1/1">1:1</button>
+          <button class="style-toggle-btn"        data-ratio="9/16">9:16</button>
+        </div>
+      </div>
     </div>
 
     <!--
@@ -3831,6 +3840,24 @@
     });
     emailEl.addEventListener('keydown', e => {
       if (e.key === 'Enter') document.getElementById('ls-password').focus();
+    });
+  })();
+
+  // ── ASPECT RATIO SELECTOR ──
+  (function() {
+    const btns     = document.querySelectorAll('#aspect-ratio-btns .style-toggle-btn');
+    const slideEls = [
+      document.getElementById('slide-preview'),
+      document.getElementById('slide-live'),
+    ];
+
+    btns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        btns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const ratio = btn.dataset.ratio;
+        slideEls.forEach(el => { if (el) el.style.aspectRatio = ratio; });
+      });
     });
   })();
 

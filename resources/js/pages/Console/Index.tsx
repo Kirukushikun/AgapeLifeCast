@@ -89,6 +89,12 @@ export interface ScheduleData {
     items: ScheduleItem[];
 }
 
+export interface SchedulePreset {
+    id: number;
+    name: string;
+    count: number;
+}
+
 export interface ThemeData {
     id: number;
     name: string;
@@ -126,9 +132,10 @@ interface Props {
     schedule: ScheduleData | null;
     themes: ThemeData[];
     selectedSong: SelectedSong | null;
+    presets: SchedulePreset[];
 }
 
-export default function Index({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDeckFolders, uncategorizedDecks, schedule, themes, selectedSong }: Props) {
+export default function Index({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDeckFolders, uncategorizedDecks, schedule, themes, selectedSong, presets }: Props) {
     const [selectedVerse, setSelectedVerse]       = useState<SavedVerse | null>(null);
     const [selectedDeck, setSelectedDeck]         = useState<SlideDeck | null>(null);
     const [volume, setVolume]                     = useState(0.8);
@@ -220,6 +227,7 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
                     uncategorizedMedia={uncategorizedMedia}
                     slideDeckFolders={slideDeckFolders}
                     uncategorizedDecks={uncategorizedDecks}
+                    presets={presets}
                     onScheduleItemClick={handleScheduleItemClick}
                 />
             </div>
