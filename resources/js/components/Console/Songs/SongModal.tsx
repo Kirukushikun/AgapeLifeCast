@@ -4,12 +4,12 @@ import CustomSelect from '@/components/Console/Shared/CustomSelect';
 import type { SongFolder, SlideData } from '@/pages/Console/Index';
 
 const TYPE_META = {
-    verse:  { label: 'V',  badgeClass: 'lc-ib-verse',  bgClass: 'lc-tagged-verse',  name: 'Verse' },
-    chorus: { label: 'C',  badgeClass: 'lc-ib-chorus', bgClass: 'lc-tagged-chorus', name: 'Chorus' },
-    pre:    { label: 'PC', badgeClass: 'lc-ib-pre',    bgClass: 'lc-tagged-pre',    name: 'Pre-Chorus' },
-    bridge: { label: 'B',  badgeClass: 'lc-ib-bridge', bgClass: 'lc-tagged-bridge', name: 'Bridge' },
-    tag:    { label: 'T',  badgeClass: 'lc-ib-tag',    bgClass: 'lc-tagged-tag',    name: 'Tag' },
-    outro:  { label: 'O',  badgeClass: 'lc-ib-outro',  bgClass: 'lc-tagged-outro',  name: 'Outro' },
+    verse:  { label: 'Verse',  badgeClass: 'lc-ib-verse',  bgClass: 'lc-tagged-verse',  name: 'Verse' },
+    chorus: { label: 'Chorus',  badgeClass: 'lc-ib-chorus', bgClass: 'lc-tagged-chorus', name: 'Chorus' },
+    pre:    { label: 'Pre-Chorus', badgeClass: 'lc-ib-pre',    bgClass: 'lc-tagged-pre',    name: 'Pre-Chorus' },
+    bridge: { label: 'Bridge',  badgeClass: 'lc-ib-bridge', bgClass: 'lc-tagged-bridge', name: 'Bridge' },
+    tag:    { label: 'Tag',  badgeClass: 'lc-ib-tag',    bgClass: 'lc-tagged-tag',    name: 'Tag' },
+    outro:  { label: 'Outro',  badgeClass: 'lc-ib-outro',  bgClass: 'lc-tagged-outro',  name: 'Outro' },
 } as const;
 
 type TagType = keyof typeof TYPE_META;
@@ -120,7 +120,7 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
         let vc = 0;
         editorRef.current?.querySelectorAll('.lc-tagged-section[data-type="verse"]').forEach(span => {
             const badge = span.querySelector('.lc-inline-badge');
-            if (badge) badge.textContent = 'V' + (++vc);
+            if (badge) badge.textContent = 'Verse ' + (++vc);
         });
     };
 
@@ -132,7 +132,7 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
         const meta  = TYPE_META[type];
 
         const verseCount = editorRef.current.querySelectorAll('.lc-tagged-section[data-type="verse"]').length;
-        const label = type === 'verse' ? 'V' + (verseCount + 1) : meta.label;
+        const label = type === 'verse' ? 'Verse ' + (verseCount + 1) : meta.label;
 
         const badge = document.createElement('span');
         badge.className       = `lc-inline-badge ${meta.badgeClass}`;

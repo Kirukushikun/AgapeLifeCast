@@ -364,6 +364,67 @@ html.dark {
 }
 .lc-topbar nav button:hover { background: rgba(255,255,255,.18); }
 
+.lc-topbar .lc-menu-group {
+    position: relative;
+}
+.lc-topbar .lc-menu-trigger {
+    background: transparent;
+    border: none;
+    color: #fff;
+    padding: 6px 12px;
+    font-size: .85rem;
+    font-family: 'Poppins', sans-serif;
+    transition: background .15s;
+    cursor: pointer;
+}
+.lc-topbar .lc-menu-trigger:hover,
+.lc-topbar .lc-menu-trigger:focus {
+    background: rgba(255,255,255,.18);
+}
+.lc-topbar .lc-submenu-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 20;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 4px;
+    background: var(--lc-bg-panel);
+    border: 1px solid var(--lc-border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-0.5rem);
+    transition: opacity .2s ease, transform .2s ease;
+    font-family: 'Poppins', sans-serif;
+}
+.lc-topbar .lc-submenu-panel.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+.lc-topbar .lc-submenu-panel button {
+    width: 100%;
+    background: transparent;
+    border: none;
+    text-align: left;
+    padding: 7px 10px;
+    color: var(--lc-text-primary);
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: .78rem;
+    font-weight: 500;
+    transition: background .12s;
+    user-select: none;
+}
+.lc-topbar .lc-submenu-panel button:hover,
+.lc-topbar .lc-submenu-panel button:focus {
+    background: rgba(0,0,0,.05);
+}
+
 .lc-topbar .lc-spacer { flex: 1; }
 .lc-topbar .lc-actions { display: flex; align-items: center; gap: 6px; }
 

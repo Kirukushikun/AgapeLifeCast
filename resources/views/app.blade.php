@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-
+        <meta name="darkreader-lock" />
         {{-- Apply dark class immediately based on system preference (before React hydrates) --}}
         <script>
             (function() {

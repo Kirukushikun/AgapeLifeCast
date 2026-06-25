@@ -90,6 +90,22 @@ BIBLE_GNT_ID=61fd76eafa1577c2-02
 
 > **Bible API:** Register a free account at [scripture.api.bible](https://scripture.api.bible), create an app, copy the API key. The Bible IDs above are already correct for NIV, Tagalog (TCB), and Good News Translation (GNT).
 
+### ⚠️ Running via Laragon's Apache (subfolder mode)
+
+If you access the app through Laragon's Apache at a subfolder URL like `http://localhost/AgapeLifeCast/public/`, you must set `APP_URL` to match that exact path:
+
+```env
+APP_URL=http://localhost/AgapeLifeCast/public
+```
+
+Then clear the config cache after saving:
+
+```bash
+php artisan config:clear
+```
+
+Failure to do this is the most common cause of images appearing black — the `src` URL in the browser will point to the wrong host/path.
+
 ---
 
 ## 5. Install Dependencies
@@ -126,6 +142,8 @@ Media files and slide images are stored in `storage/app/public`. Run this once t
 ```bash
 php artisan storage:link
 ```
+
+> **Windows / Laragon users:** Always run `php artisan storage:link` from **Command Prompt (cmd) as Administrator**, not Git Bash. Git Bash creates a POSIX-style symlink that Apache cannot follow, which causes all uploaded images to return 404. To verify the link was created correctly, run `dir public\storage` in cmd — it should show `<JUNCTION>` in the output.
 
 ---
 
@@ -250,10 +268,16 @@ If you restart the computer, you need to restart `composer dev` (or the queue li
 
 **Images / uploaded files return 404**
 - Run `php artisan storage:link` — the symlink from `public/storage` to `storage/app/public` is missing
+- On Windows, always run this from **cmd as Administrator**, not Git Bash (see Step 7 above)
 
 **Images show as black / broken even after running `storage:link`**
-- Check `APP_URL` in `.env` — it must match the URL you actually use in the browser. Right-click a broken image → Inspect → check the `src` URL. If the host is wrong, fix `APP_URL` and run `php artisan config:clear`
-- On Windows, symlink creation requires admin privileges or Developer Mode enabled. If the link silently failed, open a terminal **as Administrator** and re-run `php artisan storage:link`
+- Check `APP_URL` in `.env` — it must exactly match the URL you use in the browser
+  - Using `php artisan serve` → `APP_URL=http://localhost:8000`
+  - Using Laragon Apache subfolder → `APP_URL=http://localhost/AgapeLifeCast/public`
+  - Using a virtual host → `APP_URL=http://agape-lifecast.test`
+- After fixing `APP_URL`, run `php artisan config:clear`
+- Right-click a broken image in the browser → **Inspect** → check the `src` URL to confirm it matches your `APP_URL`
+- On Windows, the Git Bash symlink silently fails — Apache cannot follow it. Open cmd as Administrator and re-run `php artisan storage:link`, then verify with `dir public\storage` (should show `<JUNCTION>`)
 - On a fresh clone, the database has records but `storage/app/public/` is empty — no files were ever uploaded to this machine. Copy that folder from the original PC or re-upload the files
 
 **"SQLSTATE: no such table" errors**

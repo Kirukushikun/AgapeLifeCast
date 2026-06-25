@@ -104,6 +104,7 @@ function SlideCanvas({ label, text, blank = false, songTitle, theme, textStyle, 
                     <div
                         className="lc-lyric-text"
                         style={lyricStyle}
+                        suppressHydrationWarning
                         dangerouslySetInnerHTML={{ __html: text.replace(/\n/g, '<br>') }}
                     />
                     <span className="lc-song-title" style={{ color: textStyle.labelColor }}>{songTitle}</span>
@@ -312,10 +313,19 @@ export default function PreviewArea({ selectedSong, selectedVerse, selectedDeck,
     const handleSendLive = () => {
         if (isDeckMode) {
             sendDeckSlideLive(activeDeckSlide);
+            // advance deck slide
+            const next = Math.min(selectedDeck!.slides.length - 1, activeDeckSlide + 1);
+            setActiveDeckSlide(next);
         } else if (selectedVerse) {
             sendLive({ kind: 'verse', verse: selectedVerse });
         } else if (selectedSong && slides[previewIdx]) {
             sendLive({ kind: 'slide', song: selectedSong, slideIdx: previewIdx });
+            // advance to next slide preview (only if not last slide)
+            if (!liveClick && previewIdx < slides.length - 1) {
+                const next = previewIdx + 1;
+                setPreviewIdx(next);
+                setActiveThumb(next);
+            }
         }
     };
 
