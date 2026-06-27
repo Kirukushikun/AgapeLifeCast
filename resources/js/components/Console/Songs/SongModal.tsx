@@ -33,12 +33,12 @@ interface Props {
 
 function labelToType(label: string | null): TagType | null {
     if (!label) return null;
-    if (label.startsWith('V')) return 'verse';
-    if (label === 'C') return 'chorus';
-    if (label === 'PC') return 'pre';
-    if (label === 'B') return 'bridge';
-    if (label === 'T') return 'tag';
-    if (label === 'O') return 'outro';
+    if (label.startsWith('V') || label === 'Verse') return 'verse';
+    if (label === 'C' || label === 'Chorus') return 'chorus';
+    if (label === 'PC' || label === 'Pre-Chorus') return 'pre';
+    if (label === 'B' || label === 'Bridge') return 'bridge';
+    if (label === 'T' || label === 'Tag') return 'tag';
+    if (label === 'O' || label === 'Outro') return 'outro';
     return null;
 }
 
@@ -94,13 +94,15 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
                 slides:    [],
             });
             editorRef.current.innerHTML = buildEditorHtml(editData.slides);
-            updateSections();
         } else {
             form.reset();
             editorRef.current.innerHTML = '';
         }
 
-        setTimeout(() => document.getElementById('lc-song-title')?.focus(), 80);
+        setTimeout(() => {
+            document.getElementById('lc-song-title')?.focus();
+            if (editData) updateSections();   // ← MOVED HERE
+        }, 80);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
