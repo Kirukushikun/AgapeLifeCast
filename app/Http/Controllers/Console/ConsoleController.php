@@ -16,6 +16,7 @@ use App\Models\SchedulePreset;
 use App\Models\Theme;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -50,13 +51,20 @@ class ConsoleController extends Controller
     {
         $request->validate([
             'name'              => 'required|string|max:100',
-            'bg_type'           => 'required|in:solid,gradient',
+            'bg_type'           => 'required|in:solid,gradient,image',
             'bg_color'          => 'nullable|string|max:20',
             'bg_gradient_from'  => 'nullable|string|max:20',
             'bg_gradient_to'    => 'nullable|string|max:20',
             'bg_gradient_angle' => 'nullable|integer|min:0|max:360',
+            'bg_image'          => 'nullable|image|max:10240',
             'text_color'        => 'required|string|max:20',
         ]);
+
+        $imagePath = null;
+        if ($request->bg_type === 'image' && $request->hasFile('bg_image')) {
+            $stored    = $request->file('bg_image')->store('themes', 'public');
+            $imagePath = '/storage/' . $stored;
+        }
 
         Theme::create([
             'name'              => $request->name,
@@ -65,6 +73,7 @@ class ConsoleController extends Controller
             'bg_gradient_from'  => $request->bg_gradient_from,
             'bg_gradient_to'    => $request->bg_gradient_to,
             'bg_gradient_angle' => $request->bg_gradient_angle ?? 135,
+            'bg_image_path'     => $imagePath,
             'text_color'        => $request->text_color,
             'is_system'         => false,
         ]);
@@ -328,6 +337,7 @@ class ConsoleController extends Controller
             ->map(fn ($t) => [
                 'id'              => $t->id,
                 'name'            => $t->name,
+                'bg_type'         => $t->bg_type,
                 'css_bg'          => $t->css_background,
                 'text_color'      => $t->text_color,
                 'is_system'       => $t->is_system,

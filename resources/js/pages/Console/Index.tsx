@@ -100,6 +100,7 @@ export interface SchedulePreset {
 export interface ThemeData {
     id: number;
     name: string;
+    bg_type: string;
     css_bg: string;
     text_color: string;
     is_system: boolean;
@@ -189,7 +190,12 @@ interface Props {
 export default function Index({ songFolders, uncategorizedSongs, verseFolders, savedVerses, mediaFolders, uncategorizedMedia, slideDeckFolders, uncategorizedDecks, schedule, themes, selectedSong, presets }: Props) {
     const [selectedVerse, setSelectedVerse]       = useState<SavedVerse | null>(null);
     const [selectedDeck, setSelectedDeck]         = useState<SlideDeck | null>(null);
-    const [outputRatio, setOutputRatio]           = useState('16/9');
+    const [outputRatio, setOutputRatio]           = useState(() => sessionStorage.getItem('lc-output-ratio') ?? '16/9');
+
+    const handleRatioChange = (r: string) => {
+        setOutputRatio(r);
+        sessionStorage.setItem('lc-output-ratio', r);
+    };
     const { textStyle, updateTextStyle }          = useTextStyle();
     const [volume, setVolume]                     = useState(0.8);
     const [hasActiveAudio, setHasActiveAudio]     = useState(false);
@@ -289,7 +295,7 @@ export default function Index({ songFolders, uncategorizedSongs, verseFolders, s
                     uncategorizedDecks={uncategorizedDecks}
                     presets={presets}
                     outputRatio={outputRatio}
-                    onRatioChange={setOutputRatio}
+                    onRatioChange={handleRatioChange}
                     onScheduleItemClick={handleScheduleItemClick}
                     onVerseThemeChange={handleVerseThemeChange}
                     textStyle={textStyle}

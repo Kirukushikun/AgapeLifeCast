@@ -103,7 +103,10 @@ function LiveSlide({ content, outputRatio }: { content: SlideContent; outputRati
     const { containerRef, viewportRef, vpHeight } = useViewportRatio(outputRatio);
     const ts        = content.textStyle ?? DEFAULT_TEXT_STYLE;
     const fontScale = vpHeight > 0 ? vpHeight / 720 : 1;
-    const screenStyle = content.theme ? { background: content.theme.css_bg } : { background: '#111' };
+    const isImageBg   = content.theme?.css_bg.startsWith('url(');
+    const screenStyle = content.theme
+        ? { background: content.theme.css_bg, ...(isImageBg ? { backgroundSize: 'cover', backgroundPosition: 'center' } : {}) }
+        : { background: '#111' };
     const contentStyle = {
         ...screenStyle,
         justifyContent: ts.textPos === 'top' ? 'flex-start' : ts.textPos === 'bottom' ? 'flex-end' : 'center',

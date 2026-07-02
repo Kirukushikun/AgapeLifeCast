@@ -81,6 +81,8 @@ export default function PropertiesPanel({
     const [gradFrom, setGradFrom]               = useState('#0d2200');
     const [gradTo, setGradTo]                   = useState('#1e4700');
     const [gradAngle, setGradAngle]             = useState(135);
+    const [bgImageFile, setBgImageFile]         = useState<File | null>(null);
+    const [bgImagePreview, setBgImagePreview]   = useState('');
     const [tcTextColor, setTcTextColor]         = useState('#ffffff');
     const [themeName, setThemeName]             = useState('');
 
@@ -103,10 +105,18 @@ export default function PropertiesPanel({
         return () => document.removeEventListener('click', close);
     }, []);
 
+    const handleBgImageChange = (file: File) => {
+        setBgImageFile(file);
+        const reader = new FileReader();
+        reader.onload = e => setBgImagePreview(e.target?.result as string ?? '');
+        reader.readAsDataURL(file);
+    };
+
     /* derive composer preview background */
     const composerPreviewBg =
         composerType === 'solid'    ? solidColor :
         composerType === 'gradient' ? `linear-gradient(${gradAngle}deg,${gradFrom},${gradTo})` :
+        composerType === 'image'    ? (bgImagePreview || '#333') :
         '#444';
 
     return (
@@ -395,7 +405,10 @@ export default function PropertiesPanel({
                                 (selectedVerse ? selectedVerse.theme_id : selectedSong?.theme_id) === theme.id
                                     ? ' active' : ''
                             }`}
-                            style={{ background: theme.css_bg }}
+                            style={{
+                                background: theme.css_bg,
+                                ...(theme.bg_type === 'image' ? { backgroundSize: 'cover', backgroundPosition: 'center' } : {}),
+                            }}
                             onClick={() => {
                                 if (selectedVerse) {
                                     onVerseThemeChange(theme.id, { css_bg: theme.css_bg, text_color: theme.text_color });
@@ -453,14 +466,20 @@ export default function PropertiesPanel({
                     {/* Preview swatch */}
                     <div
                         className="lc-tc-preview"
-                        style={{ background: composerPreviewBg, color: tcTextColor }}
+                        style={{
+                            background: composerType === 'image' ? undefined : composerPreviewBg,
+                            backgroundImage: composerType === 'image' && bgImagePreview ? `url(${bgImagePreview})` : undefined,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            color: tcTextColor,
+                        }}
                     >
                         Amazing Grace
                     </div>
 
                     {/* Type switcher */}
                     <div className="lc-tc-type-btns">
-                        {(['solid', 'gradient'] as ComposerType[]).map(t => (
+                        {(['solid', 'gradient', 'image'] as ComposerType[]).map(t => (
                             <button
                                 key={t}
                                 className={`lc-tc-type-btn${composerType === t ? ' active' : ''}`}
@@ -486,6 +505,40 @@ export default function PropertiesPanel({
                                 maxLength={7}
                                 onChange={e => setSolidColor(e.target.value)}
                             />
+                        </div>
+                    )}
+
+                    {/* Image fields */}
+                    {composerType === 'image' && (
+                        <div
+                            className={`lc-tc-image-zone${bgImageFile ? ' has-image' : ''}`}
+                            onClick={() => document.getElementById('tc-image-input')?.click()}
+                            onDragOver={e => e.preventDefault()}
+                            onDrop={e => {
+                                e.preventDefault();
+                                const f = e.dataTransfer.files[0];
+                                if (f && f.type.startsWith('image/')) handleBgImageChange(f);
+                            }}
+                        >
+                            <input
+                                id="tc-image-input"
+                                type="file"
+                                accept="image/*"
+                                style={{ display: 'none' }}
+                                onChange={e => {
+                                    const f = e.target.files?.[0];
+                                    if (f) handleBgImageChange(f);
+                                    e.target.value = '';
+                                }}
+                            />
+                            {bgImageFile ? (
+                                <span className="lc-tz-name">📷 {bgImageFile.name}</span>
+                            ) : (
+                                <>
+                                    <span className="lc-tz-icon">🖼️</span>
+                                    <span className="lc-tz-hint">Click or drop an image</span>
+                                </>
+                            )}
                         </div>
                     )}
 
@@ -531,18 +584,24 @@ export default function PropertiesPanel({
                         />
                         <button
                             className="lc-tc-save-btn"
-                            disabled={!themeName.trim()}
+                            disabled={!themeName.trim() || (composerType === 'image' && !bgImageFile)}
                             onClick={() => {
                                 router.post('/console/themes', {
                                     name:              themeName.trim(),
                                     bg_type:           composerType,
-                                    bg_color:          composerType === 'solid' ? solidColor : null,
-                                    bg_gradient_from:  composerType === 'gradient' ? gradFrom : null,
-                                    bg_gradient_to:    composerType === 'gradient' ? gradTo   : null,
-                                    bg_gradient_angle: composerType === 'gradient' ? gradAngle : null,
+                                    bg_color:          composerType === 'solid'    ? solidColor : null,
+                                    bg_gradient_from:  composerType === 'gradient' ? gradFrom   : null,
+                                    bg_gradient_to:    composerType === 'gradient' ? gradTo     : null,
+                                    bg_gradient_angle: composerType === 'gradient' ? gradAngle  : null,
+                                    bg_image:          composerType === 'image'    ? bgImageFile : null,
                                     text_color:        tcTextColor,
                                 }, {
-                                    onSuccess: () => { setThemeName(''); setComposerOpen(false); },
+                                    onSuccess: () => {
+                                        setThemeName('');
+                                        setBgImageFile(null);
+                                        setBgImagePreview('');
+                                        setComposerOpen(false);
+                                    },
                                 });
                             }}
                         >

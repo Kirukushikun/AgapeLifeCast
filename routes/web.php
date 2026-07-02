@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Console\BibleController;
 use App\Http\Controllers\Console\ConsoleController;
+use App\Http\Controllers\Console\DataController;
 use App\Http\Controllers\Console\MediaController;
 use App\Http\Controllers\Console\ScheduleController;
 use App\Http\Controllers\Console\SlideDeckController;
@@ -46,6 +47,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Schedule Items
     Route::post('/console/schedule-items',                  [ScheduleController::class, 'store'])->name('console.schedule-items.store');
+    Route::post('/console/schedule-items/batch',            [ScheduleController::class, 'storeBatch'])->name('console.schedule-items.batch');
     Route::delete('/console/schedule-items/{scheduleItem}', [ScheduleController::class, 'destroy'])->name('console.schedule-items.destroy');
     Route::delete('/console/schedule',                      [ScheduleController::class, 'clearSchedule'])->name('console.schedule.clear');
     // Schedule Presets
@@ -58,6 +60,10 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/console/songs/{song}/move',       [ConsoleController::class, 'moveSong'])->name('console.songs.move');
     Route::patch('/console/songs/{song}/theme',      [ConsoleController::class, 'updateSongTheme'])->name('console.songs.theme');
     Route::delete('/console/songs/{song}',           [ConsoleController::class, 'destroySong'])->name('console.songs.destroy');
+
+    // Data backup / restore
+    Route::get('/console/export',  [DataController::class, 'export'])->name('console.export');
+    Route::post('/console/import', [DataController::class, 'import'])->name('console.import');
 
     // Themes
     Route::post('/console/themes',                      [ConsoleController::class, 'storeTheme'])->name('console.themes.store');

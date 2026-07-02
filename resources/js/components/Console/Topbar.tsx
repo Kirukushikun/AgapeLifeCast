@@ -1,34 +1,10 @@
 import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
+import { router } from '@inertiajs/react';
 
-const menuConfigs = {
-    schedule: [
-        { label: 'Add to Schedule' },
-        { label: 'View Schedule' },
-        { label: 'Import Schedule' },
-    ],
-    display: [
-        { label: 'Show Live Output' },
-        { label: 'Preview Screen' },
-        { label: 'Output Settings' },
-    ],
-    settings: [
-        { label: 'Preferences' },
-        { label: 'Theme Settings' },
-        { label: 'Keyboard Shortcuts' },
-    ],
-    help: [
-        { label: 'Call iverson pogi' },
-    ],
-};
+type MenuItem = { label: string; action?: () => void } | { separator: true };
 
-function getSnapshot() {
-    return localStorage.getItem('lc-dark-mode') === 'true';
-}
-
-function getServerSnapshot() {
-    return false;
-}
-
+function getSnapshot() { return localStorage.getItem('lc-dark-mode') === 'true'; }
+function getServerSnapshot() { return false; }
 function subscribe(callback: () => void) {
     window.addEventListener('storage', callback);
     return () => window.removeEventListener('storage', callback);
@@ -36,7 +12,9 @@ function subscribe(callback: () => void) {
 
 export default function Topbar() {
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
+    const [importing, setImporting]   = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const isDark = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
@@ -53,8 +31,8 @@ export default function Topbar() {
     }, []);
 
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
                 setActiveMenu(null);
             }
         };
@@ -62,8 +40,57 @@ export default function Topbar() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const toggleMenu = (menu: string) => {
-        setActiveMenu(prev => (prev === menu ? null : menu));
+    const closeMenu = () => setActiveMenu(null);
+    const toggleMenu = (menu: string) => setActiveMenu(prev => (prev === menu ? null : menu));
+
+    const handleExport = () => {
+        closeMenu();
+        window.location.href = '/console/export';
+    };
+
+    const handleImportClick = () => {
+        closeMenu();
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImporting(true);
+        const form = new FormData();
+        form.append('file', file);
+
+        router.post('/console/import', form, {
+            onFinish: () => {
+                setImporting(false);
+                if (e.target) e.target.value = '';
+            },
+        });
+    };
+
+    const menuConfigs: Record<string, MenuItem[]> = {
+        schedule: [
+            { label: 'Add to Schedule' },
+            { label: 'View Schedule' },
+            { label: 'Import Schedule' },
+        ],
+        display: [
+            { label: 'Show Live Output', action: () => { closeMenu(); window.open('/live', 'lifecast-live-window'); } },
+            { label: 'Preview Screen' },
+            { label: 'Output Settings' },
+        ],
+        settings: [
+            { label: 'Preferences' },
+            { label: 'Theme Settings' },
+            { label: 'Keyboard Shortcuts' },
+            { separator: true },
+            { label: 'Export Data', action: handleExport },
+            { label: 'Import Data', action: handleImportClick },
+        ],
+        help: [
+            { label: 'Call iverson pogi' },
+        ],
     };
 
     return (
@@ -89,9 +116,19 @@ export default function Topbar() {
                         </button>
 
                         <div className={`lc-submenu-panel ${activeMenu === menuKey ? 'open' : ''}`}>
-                            {menuConfigs[menuKey].map(item => (
-                                <button key={item.label} type="button">{item.label}</button>
-                            ))}
+                            {menuConfigs[menuKey].map((item, i) =>
+                                'separator' in item ? (
+                                    <div key={i} className="lc-submenu-sep" />
+                                ) : (
+                                    <button
+                                        key={item.label}
+                                        type="button"
+                                        onClick={() => { item.action?.(); closeMenu(); }}
+                                    >
+                                        {item.label}
+                                    </button>
+                                )
+                            )}
                         </div>
                     </div>
                 ))}
@@ -100,6 +137,8 @@ export default function Topbar() {
             <div className="lc-spacer" />
 
             <div className="lc-actions">
+                {importing && <span className="lc-import-status">Importing…</span>}
+
                 <button
                     className="lc-btn-open-live"
                     onClick={() => window.open('/live', 'lifecast-live-window')}
@@ -120,6 +159,14 @@ export default function Topbar() {
                     </div>
                 </label>
             </div>
+
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+            />
         </header>
     );
 }

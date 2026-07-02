@@ -79,7 +79,10 @@ interface SlideCanvasProps {
 function SlideCanvas({ label, text, blank = false, songTitle, theme, textStyle, outputRatio }: SlideCanvasProps) {
     const { containerRef, viewportRef, vpHeight } = useViewportRatio(outputRatio);
     const fontScale   = vpHeight > 0 ? vpHeight / 720 : 1;
-    const screenStyle = theme ? { background: theme.css_bg } : { background: '#111' };
+    const isImageBg   = theme?.css_bg.startsWith('url(');
+    const screenStyle = theme
+        ? { background: theme.css_bg, ...(isImageBg ? { backgroundSize: 'cover', backgroundPosition: 'center' } : {}) }
+        : { background: '#111' };
     const contentStyle = {
         ...screenStyle,
         justifyContent: textStyle.textPos === 'top' ? 'flex-start' : textStyle.textPos === 'bottom' ? 'flex-end' : 'center',
@@ -124,7 +127,10 @@ function SlideThumbnail({ text, theme, textStyle: ts, active, onClick }: {
     onClick: () => void;
 }) {
     const { outerRef, innerRef } = useSlideScale();
-    const bgStyle   = theme ? { background: theme.css_bg } : {};
+    const isImageBg = theme?.css_bg.startsWith('url(');
+    const bgStyle   = theme
+        ? { background: theme.css_bg, ...(isImageBg ? { backgroundSize: 'cover', backgroundPosition: 'center' } : {}) }
+        : {};
     const textStyle = { color: ts.textColor };
 
     return (

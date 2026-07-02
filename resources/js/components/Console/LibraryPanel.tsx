@@ -234,6 +234,7 @@ export default function LibraryPanel({ songFolders, uncategorizedSongs, verseFol
         if (!scheduleMedia) return;
         setSelectedMedia(scheduleMedia.file);
         setActiveTab('media');
+        setSmpExpanded(true);
     }, [scheduleMedia]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Native scrubber — bypasses React's synthetic event system so dragging

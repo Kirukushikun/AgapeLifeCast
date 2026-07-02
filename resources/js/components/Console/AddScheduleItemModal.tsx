@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { X } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import type {
     SongFolder, SongItem,
     VerseFolder, SavedVerse,
@@ -39,7 +39,7 @@ export default function AddScheduleItemModal({
 }: Props) {
     const [tab, setTab]         = useState<Tab>('songs');
     const [search, setSearch]   = useState('');
-    const [selected, setSelected] = useState<{ type: string; id: number } | null>(null);
+    const [selected, setSelected] = useState<{ type: string; id: number }[]>([]);
 
     const allSongs: PickItem[] = [
         ...songFolders.flatMap(f => f.songs),
@@ -67,15 +67,26 @@ export default function AddScheduleItemModal({
     const tabItems: Record<Tab, PickItem[]> = { songs: allSongs, bible: allVerses, media: allMedia, slides: allDecks };
     const TABS: [Tab, string][] = [['songs', '🎵 Songs'], ['bible', '📖 Bible'], ['media', '🎬 Media'], ['slides', '📊 Slides']];
 
-    const query   = search.toLowerCase();
-    const items   = tabItems[tab].filter(i => !query || i.name.toLowerCase().includes(query) || i.meta.toLowerCase().includes(query));
+    const query = search.toLowerCase();
+    const items = tabItems[tab].filter(i => !query || i.name.toLowerCase().includes(query) || i.meta.toLowerCase().includes(query));
+
+    const isSelected = (item: PickItem) => selected.some(s => s.type === item.type && s.id === item.id);
+
+    const toggleItem = (item: PickItem) => {
+        setSelected(prev =>
+            isSelected(item)
+                ? prev.filter(s => !(s.type === item.type && s.id === item.id))
+                : [...prev, { type: item.type, id: item.id }]
+        );
+    };
 
     const handleAdd = () => {
-        if (!selected) return;
-        router.post('/console/schedule-items', {
-            schedulable_type: selected.type,
-            schedulable_id:   selected.id,
-        }, { onSuccess: onClose });
+        if (selected.length === 0) return;
+        router.post(
+            '/console/schedule-items/batch',
+            { items: selected.map(s => ({ schedulable_type: s.type, schedulable_id: s.id })) },
+            { onSuccess: onClose }
+        );
     };
 
     return (
@@ -92,7 +103,7 @@ export default function AddScheduleItemModal({
                         <button
                             key={t}
                             className={`lc-smi-tab${tab === t ? ' active' : ''}`}
-                            onClick={() => { setTab(t); setSearch(''); setSelected(null); }}
+                            onClick={() => { setTab(t); setSearch(''); }}
                         >
                             {label}
                         </button>
@@ -107,22 +118,31 @@ export default function AddScheduleItemModal({
                         onChange={e => setSearch(e.target.value)}
                         autoFocus
                     />
+                    {selected.length > 0 && (
+                        <button className="lc-smi-clear-btn" onClick={() => setSelected([])}>
+                            <X size={10} />
+                            {selected.length}
+                        </button>
+                    )}
                 </div>
 
                 <div className="lc-smi-list">
                     {items.length === 0 && <div className="lc-smi-empty">No items found.</div>}
                     {items.map(item => {
-                        const isSel = selected?.type === item.type && selected?.id === item.id;
+                        const isSel = isSelected(item);
                         return (
                             <div
                                 key={`${item.type}-${item.id}`}
                                 className={`lc-smi-row${isSel ? ' selected' : ''}`}
-                                onClick={() => setSelected(isSel ? null : { type: item.type, id: item.id })}
+                                onClick={() => toggleItem(item)}
                             >
                                 <span className="lc-smi-icon">{item.icon}</span>
                                 <div className="lc-smi-info">
                                     <div className="lc-smi-name">{item.name}</div>
                                     {item.meta && <div className="lc-smi-meta">{item.meta}</div>}
+                                </div>
+                                <div className={`lc-smi-check${isSel ? ' checked' : ''}`}>
+                                    {isSel && <Check size={10} strokeWidth={3} />}
                                 </div>
                             </div>
                         );
@@ -131,8 +151,10 @@ export default function AddScheduleItemModal({
 
                 <div className="lc-smi-footer">
                     <button className="lc-smi-cancel" onClick={onClose}>Cancel</button>
-                    <button className="lc-smi-add-btn" disabled={!selected} onClick={handleAdd}>
-                        Add to Schedule
+                    <button className="lc-smi-add-btn" disabled={selected.length === 0} onClick={handleAdd}>
+                        {selected.length > 0
+                            ? `Add ${selected.length} item${selected.length > 1 ? 's' : ''}`
+                            : 'Add to Schedule'}
                     </button>
                 </div>
 

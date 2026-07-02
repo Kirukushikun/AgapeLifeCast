@@ -43,6 +43,37 @@ class ScheduleController extends Controller
         return redirect()->back();
     }
 
+    public function storeBatch(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'items'                    => 'required|array|min:1|max:100',
+            'items.*.schedulable_type' => 'required|in:song,verse,media,deck',
+            'items.*.schedulable_id'   => 'required|integer',
+        ]);
+
+        $typeMap = [
+            'song'  => Song::class,
+            'verse' => SavedVerse::class,
+            'media' => MediaFile::class,
+            'deck'  => SlideDeck::class,
+        ];
+
+        $schedule = Schedule::latest()->first()
+            ?? Schedule::create(['name' => 'Default Schedule']);
+
+        $maxOrder = $schedule->items()->max('sort_order') ?? -1;
+
+        foreach ($request->items as $i => $item) {
+            $schedule->items()->create([
+                'schedulable_type' => $typeMap[$item['schedulable_type']],
+                'schedulable_id'   => $item['schedulable_id'],
+                'sort_order'       => $maxOrder + 1 + $i,
+            ]);
+        }
+
+        return redirect()->back();
+    }
+
     public function destroy(ScheduleItem $scheduleItem): RedirectResponse
     {
         $scheduleItem->delete();
