@@ -136,13 +136,13 @@ export default function AddScheduleItemModal({
                                 className={`lc-smi-row${isSel ? ' selected' : ''}`}
                                 onClick={() => toggleItem(item)}
                             >
-                                <span className="lc-smi-icon">{item.icon}</span>
-                                <div className="lc-smi-info">
-                                    <div className="lc-smi-name">{item.name}</div>
-                                    {item.meta && <div className="lc-smi-meta">{item.meta}</div>}
-                                </div>
                                 <div className={`lc-smi-check${isSel ? ' checked' : ''}`}>
                                     {isSel && <Check size={10} strokeWidth={3} />}
+                                </div>
+                                
+                                <div className="lc-smi-info">
+                                    <div className="lc-smi-name">{item.name} <span className="lc-smi-icon">{item.icon}</span> </div>
+                                    {item.meta && <div className="lc-smi-meta">{item.meta}</div>}
                                 </div>
                             </div>
                         );
