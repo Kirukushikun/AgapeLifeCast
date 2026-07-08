@@ -2158,17 +2158,62 @@ html.dark .lc-toggle-thumb { transform: translateX(22px); }
 /* Sections summary */
 .lc-sections-summary {
     display: flex; flex-wrap: wrap; gap: 6px;
-    margin-top: 10px;
+    flex-shrink: 0; padding-bottom: 4px;
 }
 .lc-section-chip {
     display: flex; align-items: center; gap: 5px;
     padding: 3px 10px 3px 6px; border-radius: 20px;
     border: 1px solid var(--lc-border); background: var(--lc-bg);
     font-size: .74rem; color: var(--lc-text-muted);
+    cursor: grab; user-select: none; transition: border-color .12s, box-shadow .12s;
+}
+.lc-section-chip:active { cursor: grabbing; }
+.lc-section-chip.lc-chip-drop {
+    border-color: var(--lc-green);
+    box-shadow: 0 0 0 2px rgba(140,195,65,.25);
+}
+.lc-chip-drag-handle {
+    font-size: .8rem; color: var(--lc-text-muted); opacity: .45;
+    line-height: 1; pointer-events: none;
 }
 .lc-section-chip-badge {
     font-size: .6rem; font-weight: 700; color: white;
     padding: 1px 5px; border-radius: 3px;
+}
+
+/* kbd hint inside tag buttons */
+.lc-tag-kbd {
+    display: inline-block; font-size: .6rem; font-family: monospace;
+    padding: 0 3px; border-radius: 3px; margin-left: 3px;
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+    line-height: 1.4; vertical-align: middle; opacity: .7;
+}
+.lc-tag-btn.ready .lc-tag-kbd { opacity: 1; }
+
+/* Retag context menu */
+.lc-retag-menu {
+    position: fixed; z-index: 2100;
+    background: var(--lc-bg-panel);
+    border: 1px solid var(--lc-border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    padding: 4px;
+    min-width: 120px;
+    display: flex; flex-direction: column; gap: 1px;
+}
+.lc-retag-menu-btn {
+    width: 100%; text-align: left;
+    padding: 6px 10px; border-radius: 5px;
+    border: none; background: none; cursor: pointer;
+    font-family: 'Poppins', sans-serif; font-size: .78rem;
+    color: var(--lc-text); transition: background .1s;
+}
+.lc-retag-menu-btn:hover { background: var(--lc-bg-panel-alt); }
+.lc-retag-btn-remove { color: #e57373; }
+.lc-retag-btn-remove:hover { background: rgba(229,115,115,.1); }
+.lc-retag-menu-sep {
+    height: 1px; background: var(--lc-border);
+    margin: 3px 4px;
 }
 
 /* ── Context Menu ── */

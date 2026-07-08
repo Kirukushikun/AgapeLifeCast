@@ -4,12 +4,12 @@ import CustomSelect from '@/components/Console/Shared/CustomSelect';
 import type { SongFolder, SlideData } from '@/pages/Console/Index';
 
 const TYPE_META = {
-    verse:  { label: 'Verse',      badgeClass: 'lc-ib-verse',  bgClass: 'lc-tagged-verse',  name: 'Verse' },
-    chorus: { label: 'Chorus',     badgeClass: 'lc-ib-chorus', bgClass: 'lc-tagged-chorus', name: 'Chorus' },
-    pre:    { label: 'Pre-Chorus', badgeClass: 'lc-ib-pre',    bgClass: 'lc-tagged-pre',    name: 'Pre-Chorus' },
-    bridge: { label: 'Bridge',     badgeClass: 'lc-ib-bridge', bgClass: 'lc-tagged-bridge', name: 'Bridge' },
-    tag:    { label: 'Tag',        badgeClass: 'lc-ib-tag',    bgClass: 'lc-tagged-tag',    name: 'Tag' },
-    outro:  { label: 'Outro',      badgeClass: 'lc-ib-outro',  bgClass: 'lc-tagged-outro',  name: 'Outro' },
+    verse:  { label: 'Verse',      badgeClass: 'lc-ib-verse',  bgClass: 'lc-tagged-verse',  name: 'Verse',      key: 'V' },
+    chorus: { label: 'Chorus',     badgeClass: 'lc-ib-chorus', bgClass: 'lc-tagged-chorus', name: 'Chorus',     key: 'C' },
+    pre:    { label: 'Pre-Chorus', badgeClass: 'lc-ib-pre',    bgClass: 'lc-tagged-pre',    name: 'Pre-Chorus', key: 'P' },
+    bridge: { label: 'Bridge',     badgeClass: 'lc-ib-bridge', bgClass: 'lc-tagged-bridge', name: 'Bridge',     key: 'B' },
+    tag:    { label: 'Tag',        badgeClass: 'lc-ib-tag',    bgClass: 'lc-tagged-tag',    name: 'Tag',        key: 'T' },
+    outro:  { label: 'Outro',      badgeClass: 'lc-ib-outro',  bgClass: 'lc-tagged-outro',  name: 'Outro',      key: 'O' },
 } as const;
 
 type TagType = keyof typeof TYPE_META;
@@ -29,6 +29,10 @@ interface Props {
     songFolders: SongFolder[];
     editData?: EditSongData;
 }
+
+const KEY_MAP: Partial<Record<string, TagType>> = {
+    v: 'verse', c: 'chorus', p: 'pre', b: 'bridge', t: 'tag', o: 'outro',
+};
 
 function labelToType(label: string | null): TagType | null {
     if (!label) return null;
@@ -55,7 +59,6 @@ function buildEditorHtml(slides: SlideData[]): string {
     }).join('<br>');
 }
 
-// Bug fix: walk the DOM and preserve <br> / block-element line breaks as \n
 function domToText(node: Node): string {
     if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
     if (node.nodeName === 'BR') return '\n';
@@ -77,12 +80,15 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
     });
 
     const editorRef     = useRef<HTMLDivElement>(null);
-    const editorHtmlRef = useRef(''); // persists editor HTML across step changes
+    const editorHtmlRef = useRef('');
 
     const [step, setStep]                     = useState<1 | 2>(1);
     const [sections, setSections]             = useState<SectionChip[]>([]);
     const [hasSelection, setHasSelection]     = useState(false);
     const [noSlidesError, setNoSlidesError]   = useState(false);
+    const [retagMenu, setRetagMenu]           = useState<{ el: HTMLElement; x: number; y: number } | null>(null);
+    const [dragIdx, setDragIdx]               = useState<number | null>(null);
+    const [dropIdx, setDropIdx]               = useState<number | null>(null);
 
     const updateSections = () => {
         const tagged = Array.from(editorRef.current?.querySelectorAll('.lc-tagged-section') ?? []);
@@ -92,13 +98,14 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
         })));
     };
 
-    // Reset when modal opens
+    // Reset when modal opens — skip step 1 for edits since metadata is already known
     useEffect(() => {
         if (!open) return;
-        setStep(1);
+        setStep(editData ? 2 : 1);
         setSections([]);
         setHasSelection(false);
         setNoSlidesError(false);
+        setRetagMenu(null);
         editorHtmlRef.current = editData ? buildEditorHtml(editData.slides) : '';
 
         if (editData) {
@@ -121,10 +128,10 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
         editorRef.current.innerHTML = editorHtmlRef.current;
         updateSections();
         setTimeout(() => editorRef.current?.focus(), 50);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [step]);
 
-    // Track text selection to enable/disable tag buttons
+    // Track text selection to enable tag buttons / keyboard shortcuts
     useEffect(() => {
         const handler = () => {
             const sel = window.getSelection();
@@ -133,6 +140,16 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
         document.addEventListener('selectionchange', handler);
         return () => document.removeEventListener('selectionchange', handler);
     }, []);
+
+    // Close retag menu when clicking outside it
+    useEffect(() => {
+        if (!retagMenu) return;
+        const close = (e: MouseEvent) => {
+            if (!(e.target as HTMLElement).closest('.lc-retag-menu')) setRetagMenu(null);
+        };
+        document.addEventListener('mousedown', close);
+        return () => document.removeEventListener('mousedown', close);
+    }, [retagMenu]);
 
     if (!open) return null;
 
@@ -173,9 +190,25 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
         updateSections();
     };
 
-    const handleEditorClick = (e: React.MouseEvent) => {
-        const span = (e.target as HTMLElement).closest('.lc-tagged-section') as HTMLElement | null;
-        if (!span) return;
+    const applyRetag = (type: TagType) => {
+        if (!retagMenu) return;
+        const span = retagMenu.el;
+        const meta = TYPE_META[type];
+        span.className = `lc-tagged-section ${meta.bgClass}`;
+        span.setAttribute('data-type', type);
+        const badge = span.querySelector('.lc-inline-badge');
+        if (badge) {
+            badge.className = `lc-inline-badge ${meta.badgeClass}`;
+            if (type !== 'verse') badge.textContent = meta.label;
+        }
+        renumberVerses();
+        updateSections();
+        setRetagMenu(null);
+    };
+
+    const removeTag = () => {
+        if (!retagMenu) return;
+        const span = retagMenu.el;
         const badge = span.querySelector('.lc-inline-badge');
         if (badge) badge.remove();
         const parent = span.parentNode!;
@@ -183,8 +216,21 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
         span.remove();
         renumberVerses();
         updateSections();
+        setRetagMenu(null);
     };
 
+    // Clicking a badge opens the retag menu; clicking the section body just places the cursor
+    const handleEditorClick = (e: React.MouseEvent) => {
+        const badge = (e.target as HTMLElement).closest('.lc-inline-badge') as HTMLElement | null;
+        if (!badge) return;
+        e.preventDefault();
+        const section = badge.closest('.lc-tagged-section') as HTMLElement | null;
+        if (!section) return;
+        const rect = badge.getBoundingClientRect();
+        setRetagMenu({ el: section, x: rect.left, y: rect.bottom + 6 });
+    };
+
+    // Paste as plain text, converting \n → <br> so line breaks survive in the editor
     const handlePaste = (e: React.ClipboardEvent) => {
         e.preventDefault();
         const text = e.clipboardData.getData('text/plain');
@@ -192,12 +238,22 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
         if (!sel || !sel.rangeCount) return;
         const range = sel.getRangeAt(0);
         range.deleteContents();
-        const node = document.createTextNode(text);
-        range.insertNode(node);
-        range.setStartAfter(node);
-        range.collapse(true);
+        const frag = document.createDocumentFragment();
+        text.split('\n').forEach((line, i) => {
+            if (i > 0) frag.appendChild(document.createElement('br'));
+            if (line) frag.appendChild(document.createTextNode(line));
+        });
+        range.insertNode(frag);
+        range.collapse(false);
         sel.removeAllRanges();
         sel.addRange(range);
+    };
+
+    // Keyboard shortcuts: V C P B T O when text is selected in the editor
+    const handleEditorKeyDown = (e: React.KeyboardEvent) => {
+        if (!hasSelection || e.ctrlKey || e.metaKey || e.altKey) return;
+        const type = KEY_MAP[e.key.toLowerCase()];
+        if (type) { e.preventDefault(); tagSelection(type); }
     };
 
     const extractSlides = () =>
@@ -209,6 +265,18 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
             const content = Array.from(clone.childNodes).map(domToText).join('').trim();
             return { label, content };
         }).filter(s => s.content.length > 0);
+
+    const reorderSections = (from: number, to: number) => {
+        const slides = extractSlides();
+        if (from < 0 || to < 0 || from >= slides.length || to >= slides.length) return;
+        const [moved] = slides.splice(from, 1);
+        slides.splice(to, 0, moved);
+        if (editorRef.current) {
+            editorRef.current.innerHTML = buildEditorHtml(slides);
+            renumberVerses();
+            updateSections();
+        }
+    };
 
     const handleNext = () => {
         if (!form.data.title.trim()) {
@@ -313,7 +381,7 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
 
                         <div className="lc-song-editor-toolbar">
                             <p className="lc-song-editor-instruct">
-                                Select lines → click a section type to tag them. Verses auto-number. Click a tagged block to untag it.
+                                Select lines → click or press a key to tag. Click a badge to change type. Drag chips to reorder.
                             </p>
                             <div className="lc-tag-buttons">
                                 {(Object.entries(TYPE_META) as [TagType, typeof TYPE_META[TagType]][]).map(([type, meta]) => (
@@ -323,7 +391,7 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
                                         className={`lc-tag-btn lc-tag-btn-${type}${hasSelection ? ' ready' : ''}`}
                                         onMouseDown={e => { e.preventDefault(); tagSelection(type); }}
                                     >
-                                        {meta.name}
+                                        {meta.name} <kbd className="lc-tag-kbd">{meta.key}</kbd>
                                     </button>
                                 ))}
                             </div>
@@ -337,6 +405,7 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
                             spellCheck={false}
                             data-placeholder="Paste your full song lyrics here…"
                             onClick={handleEditorClick}
+                            onKeyDown={handleEditorKeyDown}
                             onPaste={handlePaste}
                             onInput={updateSections}
                         />
@@ -348,7 +417,22 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
                         {sections.length > 0 && (
                             <div className="lc-sections-summary">
                                 {sections.map((s, i) => (
-                                    <div key={i} className="lc-section-chip">
+                                    <div
+                                        key={i}
+                                        className={`lc-section-chip${dropIdx === i && dragIdx !== null && dragIdx !== i ? ' lc-chip-drop' : ''}`}
+                                        draggable
+                                        onDragStart={() => setDragIdx(i)}
+                                        onDragOver={e => { e.preventDefault(); setDropIdx(i); }}
+                                        onDragLeave={() => setDropIdx(null)}
+                                        onDrop={e => {
+                                            e.preventDefault();
+                                            if (dragIdx !== null && dragIdx !== i) reorderSections(dragIdx, i);
+                                            setDragIdx(null);
+                                            setDropIdx(null);
+                                        }}
+                                        onDragEnd={() => { setDragIdx(null); setDropIdx(null); }}
+                                    >
+                                        <span className="lc-chip-drag-handle" aria-hidden>⠿</span>
                                         <span className={`lc-section-chip-badge lc-ib-${s.type}`}>{s.badgeLabel}</span>
                                         {TYPE_META[s.type].name}
                                     </div>
@@ -356,6 +440,31 @@ export default function SongModal({ open, onClose, songFolders, editData }: Prop
                             </div>
                         )}
 
+                    </div>
+                )}
+
+                {/* Retag context menu — click a badge to open */}
+                {retagMenu && (
+                    <div
+                        className="lc-retag-menu"
+                        style={{ left: retagMenu.x, top: retagMenu.y }}
+                    >
+                        {(Object.entries(TYPE_META) as [TagType, typeof TYPE_META[TagType]][]).map(([type, meta]) => (
+                            <button
+                                key={type}
+                                className={`lc-retag-menu-btn lc-retag-btn-${type}`}
+                                onMouseDown={e => { e.preventDefault(); applyRetag(type); }}
+                            >
+                                {meta.name}
+                            </button>
+                        ))}
+                        <div className="lc-retag-menu-sep" />
+                        <button
+                            className="lc-retag-menu-btn lc-retag-btn-remove"
+                            onMouseDown={e => { e.preventDefault(); removeTag(); }}
+                        >
+                            Remove tag
+                        </button>
                     </div>
                 )}
 
